@@ -1,8 +1,16 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-}
+mod aes;
+mod block;
+
+mod hash_aes;
+mod rand_aes;
+pub mod utils;
+
+pub use crate::{
+    aes::{
+        aes128::{Aes128, FIXED_KEY_AES128},
+        aes256::Aes256,
+    },
+    block::Block,
+    hash_aes::{AesHash, AES_HASH},
+    rand_aes::AesRng,
+};

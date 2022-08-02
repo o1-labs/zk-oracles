@@ -2,8 +2,39 @@
 name = "crypto_core"
 version = "0.1.0"
 authors = ["Xiang Xie <xiang@o1labs.org>"]
+license = "MIT"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+rand = "0.8.5"
+rand_core = "0.6.3"
+serde = { version = "1", features = ["derive"]}
+sha2 = "0.10.2"
+
+[features]
+
+[dev-dependencies]
+criterion = "0.3.6"
+hex = "0.4.3"
+aes = "0.8.1"
+
+[[bench]]
+name = "aes128"
+harness = false
+
+[[bench]]
+name = "aes256"
+harness = false
+
+[[bench]]
+name = "block"
+harness = false
+
+[[bench]]
+name = "hash_aes"
+harness = false
+
+[[bench]]
+name = "rand_aes"
+harness = false
