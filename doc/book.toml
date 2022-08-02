@@ -1,0 +1,6 @@
+[book]
+authors = ["Xiang Xie"]
+language = "en"
+multilingual = false
+src = "src"
+title = "zk-oracles"
