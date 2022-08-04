@@ -3,8 +3,8 @@
 
 //! The code is derived from Swanky https://github.com/GaloisInc/swanky.
 
-use crate::block::Block;
 use crate::aes::aes128::{Aes128, FIXED_KEY_AES128};
+use crate::block::Block;
 use core::arch::x86_64::*;
 
 /// AES-based correlation-robust hash function.

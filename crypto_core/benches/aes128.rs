@@ -19,7 +19,7 @@ fn bench_native_aes_encrypt(c: &mut Criterion) {
         let key = GenericArray::from([0u8; 16]);
         let mut block = GenericArray::from([42u8; 16]);
         let cipher = Native_Aes128::new(&key);
-        b.iter(||{
+        b.iter(|| {
             let c = cipher.encrypt_block(&mut block);
             criterion::black_box(c);
         });
@@ -31,7 +31,7 @@ fn bench_native_aes_decrypt(c: &mut Criterion) {
         let key = GenericArray::from([0u8; 16]);
         let mut block = GenericArray::from([42u8; 16]);
         let cipher = Native_Aes128::new(&key);
-        b.iter(||{
+        b.iter(|| {
             let c = cipher.decrypt_block(&mut block);
             criterion::black_box(c);
         });

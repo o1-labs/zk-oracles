@@ -1,8 +1,13 @@
 [package]
 name = "twopc"
 version = "0.1.0"
+authors = ["Xiang Xie <xiang@o1labs.org>"]
+license = "MIT"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+crypto_core = {path = "../crypto_core"}
+circuit = {path = "../circuit"}
+thiserror = "1.0.32"

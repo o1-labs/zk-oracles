@@ -1,7 +1,6 @@
-
 use criterion::{criterion_group, criterion_main, Criterion};
-use rand_core::RngCore;
 use crypto_core::AesRng;
+use rand_core::RngCore;
 use std::time::Duration;
 
 fn bench_aes_rand(c: &mut Criterion) {

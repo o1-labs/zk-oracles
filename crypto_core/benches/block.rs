@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use rand::Rng;
 use crypto_core::{AesRng, Block};
+use rand::Rng;
 use std::time::Duration;
 
 fn bench_clmul(c: &mut Criterion) {
@@ -35,11 +35,11 @@ fn bench_xor(c: &mut Criterion) {
     });
 }
 
-fn bench_u128_xor(c: &mut Criterion){
-    c.bench_function("U128::xor", |b|{
+fn bench_u128_xor(c: &mut Criterion) {
+    c.bench_function("U128::xor", |b| {
         let x = rand::random::<u128>();
         let y = rand::random::<u128>();
-        b.iter(||{
+        b.iter(|| {
             let z = x ^ y;
             criterion::black_box(z)
         });
@@ -57,11 +57,11 @@ fn bench_and(c: &mut Criterion) {
     });
 }
 
-fn bench_u128_and(c: &mut Criterion){
-    c.bench_function("U128::and", |b|{
+fn bench_u128_and(c: &mut Criterion) {
+    c.bench_function("U128::and", |b| {
         let x = rand::random::<u128>();
         let y = rand::random::<u128>();
-        b.iter(||{
+        b.iter(|| {
             let z = x & y;
             criterion::black_box(z)
         });
