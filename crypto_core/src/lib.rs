@@ -1,8 +1,7 @@
-mod aes;
-mod block;
-
-mod hash_aes;
-mod rand_aes;
+pub mod aes;
+pub mod block;
+pub mod hash_aes;
+pub mod rand_aes;
 pub mod utils;
 
 pub use crate::{
