@@ -1,20 +1,14 @@
 [package]
-name = "circuit"
+name = "twopc"
 version = "0.1.0"
 authors = ["Xiang Xie <xiang@o1labs.org>"]
 license = "MIT"
 edition = "2021"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 crypto_core = {path = "../crypto_core"}
-thiserror = "1.0.30"
-regex = "1.6.0"
-anyhow = "1.0.59"
-
-[dev-dependencies]
-criterion = "0.3.6"
-
-[[bench]]
-name = "circuit_eval"
-harness = false
+circuit = {path = "../circuit"}
+thiserror = "1.0.32"
+rand = "0.8.5"
