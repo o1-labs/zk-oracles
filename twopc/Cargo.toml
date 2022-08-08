@@ -11,3 +11,4 @@ edition = "2021"
 crypto_core = {path = "../crypto_core"}
 circuit = {path = "../circuit"}
 thiserror = "1.0.32"
+rand = "0.8.5"

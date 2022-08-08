@@ -14,6 +14,7 @@ union __U128 {
     bytes: u128,
 }
 
+const ZERO: __m128i = unsafe { (__U128 { bytes: 0 }).vector };
 const ONE: __m128i = unsafe { (__U128 { bytes: 1 }).vector };
 const ONES: __m128i = unsafe {
     (__U128 {
@@ -21,6 +22,10 @@ const ONES: __m128i = unsafe {
     })
     .vector
 };
+
+pub const ZERO_BLOCK: Block = Block(ZERO);
+pub const ONES_BLOCK: Block = Block(ONES);
+pub const SELECT_MASK: [Block; 2] = [ZERO_BLOCK, ONES_BLOCK];
 
 impl Block {
     /// Convert into a pointer.
