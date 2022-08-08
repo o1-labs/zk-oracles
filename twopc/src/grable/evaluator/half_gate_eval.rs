@@ -44,7 +44,11 @@ impl GCEvaluator for HalfGateEvaluator {
         gc: &GarbledCircuit,
         evaluator_input_labels: &[InputLabel],
     ) -> Result<Vec<bool>, EvaluatorError> {
-        let input_labels = [gc.generator_input_labels.clone(), evaluator_input_labels.to_vec()].concat();
+        let input_labels = [
+            gc.generator_input_labels.clone(),
+            evaluator_input_labels.to_vec(),
+        ]
+        .concat();
         assert_eq!(
             input_labels.len(),
             circ.ninput_wires,
@@ -161,5 +165,48 @@ mod tests {
 
         let outputs = ev.eval(&circ, &gc, &evaluator_input_labels).unwrap();
         assert_eq!(outputs, res);
+    }
+
+    #[test]
+    fn gc_aes_test() {
+        let mut input = vec![false; 128];
+        let mut key = vec![false; 128];
+
+        let mut rng = AesRng::new();
+        let circ = Circuit::load("../circuit/circuit_files/bristol/aes_128_reverse.txt").unwrap();
+        let gen = HalfGateGenerator;
+        let ev = HalfGateEvaluator;
+
+        let complete_gc = gen.garble(&mut rng, &circ).unwrap();
+
+        key.reverse();
+        input.reverse();
+
+        let generator_inputs: Vec<CircuitInput> = input
+            .into_iter()
+            .enumerate()
+            .map(|(id, value)| CircuitInput {
+                id,
+                value: Block::from(value as u128),
+            })
+            .collect();
+
+        let gc = complete_gc.to_public(&generator_inputs);
+
+        let evaluator_input_labels: Vec<InputLabel> = key
+            .into_iter()
+            .zip(complete_gc.input_labels[128..256].iter())
+            .enumerate()
+            .map(|(id, (value, label))| InputLabel {
+                id: id + 128,
+                label: label[value as usize],
+            })
+            .collect();
+
+        let mut outputs = ev.eval(&circ, &gc, &evaluator_input_labels).unwrap();
+        outputs.reverse();
+        assert_eq!(outputs.into_iter().map(|i| (i as u8).to_string()).collect::<String>(),
+            "01100110111010010100101111010100111011111000101000101100001110111000100001001100111110100101100111001010001101000010101100101110");
+
     }
 }
