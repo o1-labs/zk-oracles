@@ -12,3 +12,10 @@ crypto_core = {path = "../crypto_core"}
 circuit = {path = "../circuit"}
 thiserror = "1.0.32"
 rand = "0.8.5"
+
+[dev-dependencies]
+criterion = "0.3.6"
+
+[[bench]]
+name = "garble"
+harness = false
