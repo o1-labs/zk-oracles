@@ -1,7 +1,11 @@
 //! Fixed-key AES random number generator.
 //! The code is derived from Swanky. https://github.com/GaloisInc/swanky.
 
-use crate::{Aes128, Block};
+use crate::Block;
+use aes::cipher::KeyInit;
+use aes::{cipher::generic_array::GenericArray, Aes128};
+use cipher::consts::U16;
+use cipher::BlockEncrypt;
 use rand::{CryptoRng, Error, Rng, RngCore, SeedableRng};
 use rand_core::block::{BlockRng, BlockRngCore};
 
@@ -94,24 +98,28 @@ impl BlockRngCore for AesRngCore {
     fn generate(&mut self, results: &mut Self::Results) {
         // We can't just cast this because the alignment of [u32; 32] may not
         // match that of [Block; 8].
-        let mut ms: [Block; 8] = unsafe { std::mem::transmute(*results) };
-        ms[0] = Block::from(self.state);
+        let mut ms: [GenericArray<u8, U16>; 8] = unsafe { std::mem::transmute(*results) };
+        ms[0] = GenericArray::from(self.state.to_be_bytes());
         self.state += 1;
-        ms[1] = Block::from(self.state);
+        ms[1] = GenericArray::from(self.state.to_be_bytes());
         self.state += 1;
-        ms[2] = Block::from(self.state);
+        ms[2] = GenericArray::from(self.state.to_be_bytes());
         self.state += 1;
-        ms[3] = Block::from(self.state);
+        ms[3] = GenericArray::from(self.state.to_be_bytes());
         self.state += 1;
-        ms[4] = Block::from(self.state);
+        ms[4] = GenericArray::from(self.state.to_be_bytes());
         self.state += 1;
-        ms[5] = Block::from(self.state);
+        ms[5] = GenericArray::from(self.state.to_be_bytes());
         self.state += 1;
-        ms[6] = Block::from(self.state);
+        ms[6] = GenericArray::from(self.state.to_be_bytes());
         self.state += 1;
-        ms[7] = Block::from(self.state);
+        ms[7] = GenericArray::from(self.state.to_be_bytes());
         self.state += 1;
-        let c = self.aes.encrypt8(ms);
+        self.aes.encrypt_blocks(&mut ms);
+        let c: Vec<Block> = ms
+            .into_iter()
+            .map(|m| Block::try_from_slice(m.as_slice()).unwrap())
+            .collect();
         unsafe {
             *results = *(&c as *const _ as *const [u32; 32]);
         }
@@ -123,7 +131,9 @@ impl SeedableRng for AesRngCore {
 
     #[inline]
     fn from_seed(seed: Self::Seed) -> Self {
-        let aes = Aes128::new(seed);
+        let key: [u8; 16] = seed.into();
+        let key = GenericArray::from(key);
+        let aes = Aes128::new(&key);
         AesRngCore {
             aes,
             state: Default::default(),

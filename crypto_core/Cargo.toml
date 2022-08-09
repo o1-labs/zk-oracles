@@ -10,7 +10,9 @@ edition = "2021"
 rand = "0.8.5"
 rand_core = "0.6.3"
 serde = { version = "1", features = ["derive"]}
-sha2 = "0.10.2"
+once_cell = "1.12.1"
+aes = "0.8.1"
+cipher = "0.4.3"
 
 [features]
 
@@ -21,10 +23,6 @@ aes = "0.8.1"
 
 [[bench]]
 name = "aes128"
-harness = false
-
-[[bench]]
-name = "aes256"
 harness = false
 
 [[bench]]

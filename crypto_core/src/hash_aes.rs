@@ -3,10 +3,11 @@
 
 //! The code is derived from Swanky https://github.com/GaloisInc/swanky.
 
-use crate::aes::aes128::{Aes128, FIXED_KEY_AES128};
 use crate::block::Block;
+use aes::cipher::{generic_array::GenericArray, BlockEncrypt, KeyInit};
+use aes::Aes128;
 use core::arch::x86_64::*;
-
+use once_cell::sync::Lazy;
 /// AES-based correlation-robust hash function.
 ///
 /// This hash function supports the correlation-robust variants given in
@@ -16,15 +17,23 @@ pub struct AesHash {
 }
 
 /// `AesHash` with a fixed key.
-pub const AES_HASH: AesHash = AesHash {
-    aes: FIXED_KEY_AES128,
-};
+//pub const AES_HASH: AesHash = AesHash {
+//    aes: FIXED_KEY_AES128,
+//};
+
+pub static AES_HASH: Lazy<AesHash> = Lazy::new(|| {
+    let key = GenericArray::from([0u8; 16]);
+    let aes = Aes128::new(&key);
+    AesHash { aes }
+});
 
 impl AesHash {
     /// Initialize the hash function using `key`.
     #[inline]
     pub fn new(key: Block) -> Self {
-        let aes = Aes128::new(key);
+        let key_byte: [u8; 16] = key.into();
+        let key = GenericArray::from(key_byte);
+        let aes = Aes128::new(&key);
         AesHash { aes }
     }
 
@@ -34,7 +43,11 @@ impl AesHash {
     /// The function computes `π(x) ⊕ x`.
     #[inline]
     pub fn cr_hash(&self, _i: Block, x: Block) -> Block {
-        self.aes.encrypt(x) ^ x
+        let y: [u8; 16] = x.into();
+        let mut y = GenericArray::from(y);
+        self.aes.encrypt_block(&mut y);
+        let y = Block::try_from_slice(y.as_slice()).unwrap();
+        y ^ x
     }
 
     /// Circular correlation-robust hash function (cf.
@@ -60,9 +73,17 @@ impl AesHash {
     /// The function computes `π(π(x) ⊕ i) ⊕ π(x)`.
     #[inline]
     pub fn tccr_hash(&self, i: Block, x: Block) -> Block {
-        let y = self.aes.encrypt(x);
+        let y: [u8; 16] = x.into();
+        let mut y = GenericArray::from(y);
+        self.aes.encrypt_block(&mut y);
+        let y = Block::try_from_slice(y.as_slice()).unwrap();
+
         let t = y ^ i;
-        let z = self.aes.encrypt(t);
+
+        let t: [u8; 16] = t.into();
+        let mut z = GenericArray::from(t);
+        self.aes.encrypt_block(&mut z);
+        let z = Block::try_from_slice(z.as_slice()).unwrap();
         y ^ z
     }
 }
