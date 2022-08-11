@@ -1,13 +1,14 @@
-pub mod mem_channel;
+pub mod local_channel;
 pub mod net_channel;
 
-pub use mem_channel::*;
+pub use local_channel::*;
 pub use net_channel::*;
 
 use std::{
     cell::RefCell,
     io::{Read, Result, Write},
     rc::Rc,
+    sync::{Arc, Mutex},
 };
 
 use crate::{
@@ -75,6 +76,7 @@ pub struct StdChannel<R, W> {
 
     read_bytes_size: usize,
     write_bytes_size: usize,
+    flush_num: usize,
 }
 
 impl<R: Read, W: Write> StdChannel<R, W> {
@@ -88,6 +90,7 @@ impl<R: Read, W: Write> StdChannel<R, W> {
             writer,
             read_bytes_size: 0,
             write_bytes_size: 0,
+            flush_num: 0,
         }
     }
 
@@ -101,14 +104,19 @@ impl<R: Read, W: Write> StdChannel<R, W> {
         self.writer
     }
 
-    /// Return `write_bytes`
-    pub fn wirte_bytes(&self) -> usize {
+    /// Return `write_bytes_size`
+    pub fn wirte_bytes_size(&self) -> usize {
         self.write_bytes_size
     }
 
-    /// Return `read_bytes`
-    pub fn read_bytes(&self) -> usize {
+    /// Return `read_bytes_size`
+    pub fn read_bytes_size(&self) -> usize {
         self.read_bytes_size
+    }
+
+    /// Return `flush_num`
+    pub fn flush_num(&self) -> usize {
+        self.flush_num
     }
 }
 
@@ -129,46 +137,127 @@ impl<R: Read, W: Write> IOChannel for StdChannel<R, W> {
 
     #[inline(always)]
     fn flush(&mut self) -> Result<()> {
-        self.writer.borrow_mut().flush()
+        self.writer.borrow_mut().flush()?;
+        self.flush_num += 1;
+        Ok(())
     }
 }
 
-/// Standard symmetric stream implement `IOChannel`
-pub struct SymChannel<S> {
-    stream: Rc<RefCell<S>>,
-    read_bytes: usize,
-    write_bytes: usize,
+/// A sync channel that implements `IOChannel`.
+pub struct SynChannel<R, W> {
+    reader: Arc<Mutex<R>>,
+    writer: Arc<Mutex<W>>,
+
+    read_bytes_size: usize,
+    write_bytes_size: usize,
+    flush_num: usize,
 }
 
-impl<S: Read + Write> SymChannel<S> {
-    ///New a `SymChannel`
-    pub fn new(stream: S) -> Self {
-        let stream = Rc::new(RefCell::new(stream));
+impl<R: Read, W: Write> SynChannel<R, W> {
+    /// New a `SynChannel`
+    pub fn new(reader: R, writer: W) -> Self {
+        let reader = Arc::new(Mutex::new(reader));
+        let writer = Arc::new(Mutex::new(writer));
+
         Self {
-            stream,
-            read_bytes: 0,
-            write_bytes: 0,
+            reader,
+            writer,
+            read_bytes_size: 0,
+            write_bytes_size: 0,
+            flush_num: 0,
         }
     }
+
+    /// Return a reader object wrapped in `Rc<RefCell>`
+    pub fn reader(self) -> Arc<Mutex<R>> {
+        self.reader
+    }
+
+    /// Return a writer object wrapped in `Rc<RefCell>`
+    pub fn writer(self) -> Arc<Mutex<W>> {
+        self.writer
+    }
+
+    /// Return `write_bytes_size`
+    pub fn wirte_bytes_size(&self) -> usize {
+        self.write_bytes_size
+    }
+
+    /// Return `read_bytes_size`
+    pub fn read_bytes_size(&self) -> usize {
+        self.read_bytes_size
+    }
+
+    /// Return `flush_num`
+    pub fn flush_num(&self) -> usize {
+        self.flush_num
+    }
 }
 
-impl<S: Read + Write> IOChannel for SymChannel<S> {
+impl<R: Read, W: Write> IOChannel for SynChannel<R, W> {
     #[inline(always)]
     fn write_bytes(&mut self, bytes: &[u8]) -> Result<()> {
-        self.stream.borrow_mut().write_all(bytes)?;
-        self.write_bytes += bytes.len();
+        self.writer.lock().unwrap().write_all(bytes)?;
+        self.write_bytes_size += bytes.len();
         Ok(())
     }
 
     #[inline(always)]
     fn read_bytes(&mut self, mut bytes: &mut [u8]) -> Result<()> {
-        self.stream.borrow_mut().read_exact(&mut bytes)?;
-        self.read_bytes += bytes.len();
+        self.reader.lock().unwrap().read_exact(&mut bytes)?;
+        self.read_bytes_size += bytes.len();
         Ok(())
     }
 
     #[inline(always)]
     fn flush(&mut self) -> Result<()> {
-        self.stream.borrow_mut().flush()
+        self.writer.lock().unwrap().flush()?;
+        self.flush_num += 1;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        io::{BufReader, BufWriter},
+        os::unix::net::UnixStream,
+        thread,
+    };
+
+    use rand::random;
+    use crate::{IOChannel, StdChannel};
+
+    #[test]
+    fn channel_test() {
+        //let (mut sender, mut receiver) = local_channel_pair();
+        let (sender, receiver) = UnixStream::pair().unwrap();
+        let send_bytes = random::<[u8; 10]>();
+        let mut recv_bytes_ = [0u8; 12];
+
+        let handle = thread::spawn(move || {
+            let reader = BufReader::new(sender.try_clone().unwrap());
+            let writer = BufWriter::new(sender);
+            let mut channel = StdChannel::new(reader, writer);
+
+            channel.write_bytes(&send_bytes).unwrap();
+            channel.flush().unwrap();
+
+            channel.read_bytes(&mut recv_bytes_).unwrap();
+        });
+
+        let mut recv_bytes = [0u8; 10];
+        let send_bytes_ = random::<[u8; 12]>();
+        let reader = BufReader::new(receiver.try_clone().unwrap());
+        let writer = BufWriter::new(receiver);
+        let mut channel = StdChannel::new(reader, writer);
+
+        channel.read_bytes(&mut recv_bytes).unwrap();
+        channel.write_bytes(&send_bytes_).unwrap();
+        channel.flush().unwrap();
+
+        assert_eq!(send_bytes, recv_bytes);
+
+        handle.join().unwrap();
     }
 }
