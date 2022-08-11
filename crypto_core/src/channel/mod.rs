@@ -1,10 +1,19 @@
+pub mod mem_channel;
+pub mod net_channel;
+
+pub use mem_channel::*;
+pub use net_channel::*;
+
 use std::{
     cell::RefCell,
     io::{Read, Result, Write},
     rc::Rc,
 };
 
-use crate::Block;
+use crate::{
+    utils::{pack_bits, unpack_bits},
+    Block,
+};
 
 /// A trait for I/O channel.
 pub trait IOChannel {
@@ -21,12 +30,27 @@ pub trait IOChannel {
         self.write_bytes(&[b as u8])
     }
 
-    /// Read a 'bool' from the channel.
+    /// Write a `bool` vector to the channel.
+    #[inline(always)]
+    fn write_bools(&mut self, bits: &[bool]) -> Result<()> {
+        let bit_vec = pack_bits(bits);
+        self.write_bytes(&bit_vec)
+    }
+
+    /// Read a `bool` from the channel.
     #[inline(always)]
     fn read_bool(&mut self) -> Result<bool> {
         let mut data = [0u8; 1];
         self.read_bytes(&mut data)?;
         Ok(data[0] != 0)
+    }
+
+    /// Read a `bool` vector from the channel.
+    #[inline(always)]
+    fn read_bools(&mut self) -> Result<Vec<bool>> {
+        let mut bit_vec = Vec::new();
+        self.read_bytes(&mut bit_vec)?;
+        Ok(unpack_bits(&bit_vec, bit_vec.len()))
     }
 
     /// Write a `Block` to the channel.
@@ -49,8 +73,8 @@ pub struct StdChannel<R, W> {
     reader: Rc<RefCell<R>>,
     writer: Rc<RefCell<W>>,
 
-    read_bytes: usize,
-    write_bytes: usize,
+    read_bytes_size: usize,
+    write_bytes_size: usize,
 }
 
 impl<R: Read, W: Write> StdChannel<R, W> {
@@ -62,8 +86,8 @@ impl<R: Read, W: Write> StdChannel<R, W> {
         Self {
             reader,
             writer,
-            read_bytes: 0,
-            write_bytes: 0,
+            read_bytes_size: 0,
+            write_bytes_size: 0,
         }
     }
 
@@ -79,12 +103,12 @@ impl<R: Read, W: Write> StdChannel<R, W> {
 
     /// Return `write_bytes`
     pub fn wirte_bytes(&self) -> usize {
-        self.write_bytes
+        self.write_bytes_size
     }
 
     /// Return `read_bytes`
     pub fn read_bytes(&self) -> usize {
-        self.read_bytes
+        self.read_bytes_size
     }
 }
 
@@ -92,14 +116,14 @@ impl<R: Read, W: Write> IOChannel for StdChannel<R, W> {
     #[inline(always)]
     fn write_bytes(&mut self, bytes: &[u8]) -> Result<()> {
         self.writer.borrow_mut().write_all(bytes)?;
-        self.write_bytes += bytes.len();
+        self.write_bytes_size += bytes.len();
         Ok(())
     }
 
     #[inline(always)]
     fn read_bytes(&mut self, mut bytes: &mut [u8]) -> Result<()> {
         self.reader.borrow_mut().read_exact(&mut bytes)?;
-        self.read_bytes += bytes.len();
+        self.read_bytes_size += bytes.len();
         Ok(())
     }
 
