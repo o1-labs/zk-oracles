@@ -1,8 +1,8 @@
 pub mod block;
+pub mod channel;
 pub mod hash_aes;
 pub mod rand_aes;
 pub mod utils;
-pub mod channel;
 
 pub use crate::{
     block::Block,

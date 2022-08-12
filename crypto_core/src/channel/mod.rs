@@ -31,7 +31,7 @@ pub trait IOChannel {
         self.write_bytes(&[b as u8])
     }
 
-    /// Write a `bool` vector to the channel.
+    /// Write a `bool` slice to the channel.
     #[inline(always)]
     fn write_bools(&mut self, bits: &[bool]) -> Result<()> {
         let bit_vec = pack_bits(bits);
@@ -48,10 +48,10 @@ pub trait IOChannel {
 
     /// Read a `bool` vector from the channel.
     #[inline(always)]
-    fn read_bools(&mut self) -> Result<Vec<bool>> {
-        let mut bit_vec = Vec::new();
+    fn read_bools(&mut self, size: usize) -> Result<Vec<bool>> {
+        let mut bit_vec = vec![0u8; (size - 1) / 8 + 1];
         self.read_bytes(&mut bit_vec)?;
-        Ok(unpack_bits(&bit_vec, bit_vec.len()))
+        Ok(unpack_bits(&bit_vec, size))
     }
 
     /// Write a `Block` to the channel.
@@ -105,7 +105,7 @@ impl<R: Read, W: Write> StdChannel<R, W> {
     }
 
     /// Return `write_bytes_size`
-    pub fn wirte_bytes_size(&self) -> usize {
+    pub fn write_bytes_size(&self) -> usize {
         self.write_bytes_size
     }
 
@@ -225,38 +225,77 @@ mod tests {
         thread,
     };
 
+    use crate::{local_channel_pair, Block, IOChannel, StdChannel};
     use rand::random;
-    use crate::{IOChannel, StdChannel};
 
     #[test]
-    fn channel_test() {
-        //let (mut sender, mut receiver) = local_channel_pair();
-        let (sender, receiver) = UnixStream::pair().unwrap();
+    fn std_channel_test() {
+        let (tx, rx) = UnixStream::pair().unwrap();
         let send_bytes = random::<[u8; 10]>();
-        let mut recv_bytes_ = [0u8; 12];
+        let send_bool = random::<bool>();
+        let send_bools = random::<[bool; 10]>();
+        let send_block = random::<Block>();
 
         let handle = thread::spawn(move || {
-            let reader = BufReader::new(sender.try_clone().unwrap());
-            let writer = BufWriter::new(sender);
+            let reader = BufReader::new(tx.try_clone().unwrap());
+            let writer = BufWriter::new(tx);
             let mut channel = StdChannel::new(reader, writer);
 
             channel.write_bytes(&send_bytes).unwrap();
-            channel.flush().unwrap();
+            channel.write_bool(send_bool).unwrap();
+            channel.write_bools(&send_bools).unwrap();
+            channel.write_block(&send_block).unwrap();
 
-            channel.read_bytes(&mut recv_bytes_).unwrap();
+            channel.flush().unwrap();
         });
 
         let mut recv_bytes = [0u8; 10];
-        let send_bytes_ = random::<[u8; 12]>();
-        let reader = BufReader::new(receiver.try_clone().unwrap());
-        let writer = BufWriter::new(receiver);
+
+        let reader = BufReader::new(rx.try_clone().unwrap());
+        let writer = BufWriter::new(rx);
         let mut channel = StdChannel::new(reader, writer);
 
         channel.read_bytes(&mut recv_bytes).unwrap();
-        channel.write_bytes(&send_bytes_).unwrap();
-        channel.flush().unwrap();
+        let recv_bool = channel.read_bool().unwrap();
+        let recv_bools = channel.read_bools(10).unwrap();
+        let recv_block = channel.read_block().unwrap();
 
         assert_eq!(send_bytes, recv_bytes);
+        assert_eq!(send_bool, recv_bool);
+        assert_eq!(send_bools.to_vec(), recv_bools);
+        assert_eq!(send_block, recv_block);
+
+        handle.join().unwrap();
+    }
+
+    #[test]
+    fn local_channel_test() {
+        let (mut sender, mut receiver) = local_channel_pair();
+
+        let send_bytes = random::<[u8; 10]>();
+        let send_bool = random::<bool>();
+        let send_bools = random::<[bool; 10]>();
+        let send_block = random::<Block>();
+
+        let handle = thread::spawn(move || {
+            sender.write_bytes(&send_bytes).unwrap();
+            sender.write_bool(send_bool).unwrap();
+            sender.write_bools(&send_bools).unwrap();
+            sender.write_block(&send_block).unwrap();
+
+            sender.flush().unwrap();
+        });
+
+        let mut recv_bytes = [0u8; 10];
+        receiver.read_bytes(&mut recv_bytes).unwrap();
+        let recv_bool = receiver.read_bool().unwrap();
+        let recv_bools = receiver.read_bools(10).unwrap();
+        let recv_block = receiver.read_block().unwrap();
+
+        assert_eq!(send_bytes, recv_bytes);
+        assert_eq!(send_bool, recv_bool);
+        assert_eq!(send_bools.to_vec(), recv_bools);
+        assert_eq!(send_block, recv_block);
 
         handle.join().unwrap();
     }
