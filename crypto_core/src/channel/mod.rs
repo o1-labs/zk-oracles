@@ -16,8 +16,8 @@ use crate::{
     Block,
 };
 
-/// A trait for I/O channel.
-pub trait IOChannel {
+/// A trait for Abstract channel.
+pub trait AbstractChannel {
     /// Write bytes slice to the channel.
     fn write_bytes(&mut self, bytes: &[u8]) -> Result<()>;
     /// Read bytes slice from the channel.
@@ -120,7 +120,7 @@ impl<R: Read, W: Write> StdChannel<R, W> {
     }
 }
 
-impl<R: Read, W: Write> IOChannel for StdChannel<R, W> {
+impl<R: Read, W: Write> AbstractChannel for StdChannel<R, W> {
     #[inline(always)]
     fn write_bytes(&mut self, bytes: &[u8]) -> Result<()> {
         self.writer.borrow_mut().write_all(bytes)?;
@@ -194,7 +194,7 @@ impl<R: Read, W: Write> SynChannel<R, W> {
     }
 }
 
-impl<R: Read, W: Write> IOChannel for SynChannel<R, W> {
+impl<R: Read, W: Write> AbstractChannel for SynChannel<R, W> {
     #[inline(always)]
     fn write_bytes(&mut self, bytes: &[u8]) -> Result<()> {
         self.writer.lock().unwrap().write_all(bytes)?;
@@ -225,7 +225,7 @@ mod tests {
         thread,
     };
 
-    use crate::{local_channel_pair, Block, IOChannel, StdChannel};
+    use crate::{local_channel_pair, Block, AbstractChannel, StdChannel};
     use rand::random;
 
     #[test]
