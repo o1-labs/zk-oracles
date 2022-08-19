@@ -13,6 +13,8 @@ serde = { version = "1", features = ["derive"]}
 once_cell = "1.12.1"
 aes = "0.8.1"
 cipher = "0.4.3"
+structopt = "0.3.20"
+
 
 [features]
 
@@ -36,3 +38,7 @@ harness = false
 [[bench]]
 name = "rand_aes"
 harness = false
+
+[[example]]
+name = "netio"
+path = "examples/netio.rs"

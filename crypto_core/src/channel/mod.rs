@@ -225,7 +225,7 @@ mod tests {
         thread,
     };
 
-    use crate::{local_channel_pair, Block, AbstractChannel, StdChannel};
+    use crate::{local_channel_pair, AbstractChannel, Block, StdChannel};
     use rand::random;
 
     #[test]
