@@ -10,7 +10,6 @@ use structopt::StructOpt;
 
 pub struct NetChannel<R: Read, W: Write> {
     is_server: bool,
-    //stream: Rc<RefCell<S>>,
     reader: Rc<RefCell<BufReader<R>>>,
     writer: Rc<RefCell<BufWriter<W>>>,
     read_bytes_size: usize,
