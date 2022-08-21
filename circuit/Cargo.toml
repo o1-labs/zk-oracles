@@ -10,7 +10,7 @@ edition = "2021"
 crypto_core = {path = "../crypto_core"}
 thiserror = "1.0.30"
 regex = "1.6.0"
-anyhow = "1.0.59"
+anyhow = "1.0.60"
 
 [dev-dependencies]
 criterion = "0.3.6"

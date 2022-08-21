@@ -4,16 +4,16 @@ pub mod net_channel;
 pub use local_channel::*;
 pub use net_channel::*;
 
+use crate::{
+    utils::{pack_bits, unpack_bits},
+    Block,
+};
+use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
 use std::{
     cell::RefCell,
     io::{Read, Result, Write},
     rc::Rc,
     sync::{Arc, Mutex},
-};
-
-use crate::{
-    utils::{pack_bits, unpack_bits},
-    Block,
 };
 
 /// A trait for Abstract channel.
@@ -66,6 +66,31 @@ pub trait AbstractChannel {
         let mut blk = Block::default();
         self.read_bytes(blk.as_mut())?;
         Ok(blk)
+    }
+
+    /// Write a Edwards point to the channel.
+    #[inline(always)]
+    fn write_point(&mut self, point: &EdwardsPoint) -> Result<()> {
+        self.write_bytes(point.compress().as_bytes())?;
+        Ok(())
+    }
+
+    /// Read a Edwards point from the channel.
+    #[inline(always)]
+    fn read_point(&mut self) -> Result<EdwardsPoint> {
+        let mut data = [0u8; 32];
+        self.read_bytes(&mut data)?;
+
+        let point = match CompressedEdwardsY::from_slice(&data).decompress() {
+            Some(point) => point,
+            None => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "unable to decompress Edwards point",
+                ));
+            }
+        };
+        Ok(point)
     }
 }
 
