@@ -251,6 +251,7 @@ mod tests {
     };
 
     use crate::{local_channel_pair, AbstractChannel, Block, StdChannel};
+    use curve25519_dalek::{constants, scalar::Scalar};
     use rand::random;
 
     #[test]
@@ -260,6 +261,8 @@ mod tests {
         let send_bool = random::<bool>();
         let send_bools = random::<[bool; 10]>();
         let send_block = random::<Block>();
+        let x = Scalar::from(random::<u128>());
+        let send_point = x * constants::ED25519_BASEPOINT_POINT;
 
         let handle = thread::spawn(move || {
             let reader = BufReader::new(tx.try_clone().unwrap());
@@ -270,6 +273,7 @@ mod tests {
             channel.write_bool(send_bool).unwrap();
             channel.write_bools(&send_bools).unwrap();
             channel.write_block(&send_block).unwrap();
+            channel.write_point(&send_point).unwrap();
 
             channel.flush().unwrap();
         });
@@ -284,11 +288,13 @@ mod tests {
         let recv_bool = channel.read_bool().unwrap();
         let recv_bools = channel.read_bools(10).unwrap();
         let recv_block = channel.read_block().unwrap();
+        let recv_point = channel.read_point().unwrap();
 
         assert_eq!(send_bytes, recv_bytes);
         assert_eq!(send_bool, recv_bool);
         assert_eq!(send_bools.to_vec(), recv_bools);
         assert_eq!(send_block, recv_block);
+        assert_eq!(send_point, recv_point);
 
         handle.join().unwrap();
     }
@@ -301,12 +307,16 @@ mod tests {
         let send_bool = random::<bool>();
         let send_bools = random::<[bool; 10]>();
         let send_block = random::<Block>();
+        let x = Scalar::from(random::<u128>());
+        let send_point = x * constants::ED25519_BASEPOINT_POINT;
 
         let handle = thread::spawn(move || {
             sender.write_bytes(&send_bytes).unwrap();
             sender.write_bool(send_bool).unwrap();
             sender.write_bools(&send_bools).unwrap();
             sender.write_block(&send_block).unwrap();
+            sender.write_point(&send_point).unwrap();
+
 
             sender.flush().unwrap();
         });
@@ -316,11 +326,14 @@ mod tests {
         let recv_bool = receiver.read_bool().unwrap();
         let recv_bools = receiver.read_bools(10).unwrap();
         let recv_block = receiver.read_block().unwrap();
+        let recv_point = receiver.read_point().unwrap();
+
 
         assert_eq!(send_bytes, recv_bytes);
         assert_eq!(send_bool, recv_bool);
         assert_eq!(send_bools.to_vec(), recv_bools);
         assert_eq!(send_block, recv_block);
+        assert_eq!(send_point, recv_point);
 
         handle.join().unwrap();
     }
