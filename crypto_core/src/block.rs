@@ -86,6 +86,17 @@ impl Block {
         bytes[..16].clone_from_slice(&bytes_slice[..16]);
         Some(Block::from(bytes))
     }
+
+    #[inline]
+    pub fn hash_point(tweak: u128, point: &RistrettoPoint) -> Self {
+        let k = point.compress();
+        let aes = Aes256::new(&GenericArray::from_slice(k.as_bytes()));
+        let blk: [u8; 16] = unsafe { std::mem::transmute(tweak) };
+        let mut blk = GenericArray::from(blk);
+        aes.encrypt_block(&mut blk);
+        Block::try_from_slice(blk.as_slice()).unwrap()
+    }
+    
 }
 
 impl Default for Block {
@@ -272,6 +283,9 @@ impl Hash for Block {
     }
 }
 
+use aes::Aes256;
+use cipher::{generic_array::GenericArray, BlockEncrypt, KeyInit};
+use curve25519_dalek::ristretto::RistrettoPoint;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Serialize, Deserialize)]

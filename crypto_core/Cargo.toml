@@ -7,14 +7,14 @@ edition = "2021"
 
 
 [dependencies]
-rand = "0.8.5"
-rand_core = "0.6.3"
+rand = "0.7"
+rand_core = "0.5"
 serde = { version = "1", features = ["derive"]}
 once_cell = "1.12.1"
 aes = "0.8.1"
 cipher = "0.4.3"
 structopt = "0.3.20"
-curve25519-dalek = "3.2.1"
+curve25519-dalek = "3"
 
 
 [features]

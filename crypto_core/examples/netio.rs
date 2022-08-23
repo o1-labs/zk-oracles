@@ -12,7 +12,7 @@ fn net_channel_test(netio: &mut NetChannel<TcpStream, TcpStream>) {
         let send_bools = random::<[bool; 10]>();
         let send_block = random::<Block>();
         let x = Scalar::from(random::<u128>());
-        let send_point = x * constants::ED25519_BASEPOINT_POINT;
+        let send_point = x * constants::RISTRETTO_BASEPOINT_POINT;
 
         println!("send_bytes: {:?}", send_bytes);
         println!("send_bool: {:?}", send_bool);
@@ -59,7 +59,7 @@ fn net_channel_test(netio: &mut NetChannel<TcpStream, TcpStream>) {
         let send_bools = random::<[bool; 10]>();
         let send_block = random::<Block>();
         let x = Scalar::from(random::<u128>());
-        let send_point = x * constants::ED25519_BASEPOINT_POINT;
+        let send_point = x * constants::RISTRETTO_BASEPOINT_POINT;
 
         println!("send_bytes: {:?}", send_bytes);
         println!("send_bool: {:?}", send_bool);

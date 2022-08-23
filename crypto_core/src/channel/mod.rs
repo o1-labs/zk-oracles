@@ -8,7 +8,7 @@ use crate::{
     utils::{pack_bits, unpack_bits},
     Block,
 };
-use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
+use curve25519_dalek::ristretto::{RistrettoPoint, CompressedRistretto};
 use std::{
     cell::RefCell,
     io::{Read, Result, Write},
@@ -70,23 +70,23 @@ pub trait AbstractChannel {
 
     /// Write a Edwards point to the channel.
     #[inline(always)]
-    fn write_point(&mut self, point: &EdwardsPoint) -> Result<()> {
+    fn write_point(&mut self, point: &RistrettoPoint) -> Result<()>{
         self.write_bytes(point.compress().as_bytes())?;
         Ok(())
     }
 
     /// Read a Edwards point from the channel.
     #[inline(always)]
-    fn read_point(&mut self) -> Result<EdwardsPoint> {
-        let mut data = [0u8; 32];
+    fn read_point(&mut self)-> Result<RistrettoPoint>{
+        let mut data = [0u8;32];
         self.read_bytes(&mut data)?;
 
-        let point = match CompressedEdwardsY::from_slice(&data).decompress() {
+        let point = match CompressedRistretto::from_slice(&data).decompress() {
             Some(point) => point,
             None => {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
-                    "unable to decompress Edwards point",
+                    "unable to decompress Ristretto point",
                 ));
             }
         };
@@ -262,7 +262,7 @@ mod tests {
         let send_bools = random::<[bool; 10]>();
         let send_block = random::<Block>();
         let x = Scalar::from(random::<u128>());
-        let send_point = x * constants::ED25519_BASEPOINT_POINT;
+        let send_point = x * constants::RISTRETTO_BASEPOINT_POINT;
 
         let handle = thread::spawn(move || {
             let reader = BufReader::new(tx.try_clone().unwrap());
@@ -308,7 +308,7 @@ mod tests {
         let send_bools = random::<[bool; 10]>();
         let send_block = random::<Block>();
         let x = Scalar::from(random::<u128>());
-        let send_point = x * constants::ED25519_BASEPOINT_POINT;
+        let send_point = x * constants::RISTRETTO_BASEPOINT_POINT;
 
         let handle = thread::spawn(move || {
             sender.write_bytes(&send_bytes).unwrap();

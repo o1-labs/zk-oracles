@@ -2,7 +2,7 @@ pub mod half_gate_gen;
 
 pub use half_gate_gen::*;
 
-use crate::errors::GeneratorError;
+use super::errors::GeneratorError;
 use crate::gc::CompleteGarbledCircuit;
 use circuit::Circuit;
 use rand::{CryptoRng, Rng};
