@@ -17,7 +17,12 @@ curve25519-dalek = "3"
 
 [dev-dependencies]
 criterion = "0.3.6"
+structopt = "0.3.26"
 
 [[bench]]
 name = "garble"
 harness = false
+
+[[example]]
+name = "ot"
+path = "examples/ot.rs"
