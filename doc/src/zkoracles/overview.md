@@ -56,7 +56,7 @@ The following workflow is an overview of the zkOracle protocol.
 
 ``` text
 Notary                              Client                              Server
-[3PC-Handshake]                     [3PC-Handshake]                     [Handshake]
+[3PC Handshake]                     [3PC Handshake]                     [Handshake]
                                     ClientHello         ----->          
                                                                         ServerHello
                                                                         Certificate
@@ -103,9 +103,9 @@ k_N
 ```
 
 
-The zkOracles protocol consists of four phases: 3PC-Handshake, Query Execution, Commit and Proof Generation. Note that the zkOracles protocol is transparent to the Server. The Server runs the standard TLS protocol.
+The zkOracles protocol consists of four phases: 3PC Handshake, Query Execution, Commit and Proof Generation. Note that the zkOracles protocol is transparent to the Server. The Server runs the standard TLS protocol.
 
-- [**3PC-Handshake**] 
+- [**3PC Handshake**] 
 In this phase, the Notary and the Client run several two-party computation protocols to handle the TLS Handshake Protocol with the Server. At the end of this phase, the Notary obtains a session key share $k_\mathcal{N}$, the Client obtains another key share $k_\mathcal{C}$. Note that $k_\mathcal{N}\oplus k_\mathcal{C}$ is the full session key. The detailed description will be given in the next section.
 
 - [**Query Execution**]
