@@ -7,3 +7,4 @@ title = "zk-oracles"
 
 [preprocessor.katex]
 command = "mdbook-katex"
+macros = "macros.txt"

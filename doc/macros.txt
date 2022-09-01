@@ -1,0 +1,12 @@
+\C:{\mathcal{C}}
+\S:{\mathcal{S}}
+\N:{\mathcal{N}}
+
+
+\Fp:{\mathbb{F}_p}
+\Fq:{\mathbb{F}_q}
+\EC:{EC(\mathbb{F}_p,\mathbb{F}_q)}
+
+\mta:{\mathsf{MtA}}
+
+\innerprod: {\langle #1,#2 \rangle}
