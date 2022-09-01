@@ -27,7 +27,7 @@ In this version, we focus on TLS 1.2 and the TLS-compatible ECDHE key exchange p
 
 8. $\C$ locally computes $P_\C = s_\C\cdot Y_\S$, $\N$ locally computes $P_\N = s_\N\cdot Y_\S$.
 
-9. $\C$ and $\N$ run a 2PC protocol $\pi_{\mathsf{2PC}}^{\mathsf{ECtF}}$ to compute an additive share of the $x$-coordinate of $s_\S\cdot (Y_\N+Y_\C) = s_\N\cdot Y_\N + s_\C\cdot Y_\C$, denoted as $z_\C$ and $z_\N$ respectively. The details of $\pi_{\mathsf{2PC}}^{\mathsf{ECtF}}$ will be given later.
+9. $\C$ and $\N$ run a 2PC protocol $\pi_{\mathsf{2PC}}^{\mathsf{ECtF}}$ to compute an additive share of the $x$-coordinate of $s_\S\cdot (Y_\N+Y_\C) = s_\N\cdot Y_\S + s_\C\cdot Y_\S = P_\C+P_\N$, denoted as $z_\C$ and $z_\N$ respectively. The details of $\pi_{\mathsf{2PC}}^{\mathsf{ECtF}}$ will be given later.
 
 10. $\C$ and $\N$ take as private input $z_\C$ and $z_\N$ respectively, and run a 2PC protocol $\pi_{\mathsf{2PC}}^{\mathsf{Der}}$ to derive boolean shares of master key and session key. $\C$ receives ($\mathsf{mk}_\C,\mathsf{sk}_\C$), $\N$ receives ($\mathsf{sk}_\N,\mathsf{sk}_\N$). The details of $\pi_{\mathsf{2PC}}^{\mathsf{Der}}$ will be given later.
 
