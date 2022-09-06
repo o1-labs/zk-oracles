@@ -10,3 +10,27 @@
 \mta:{\mathsf{MtA}}
 
 \innerprod: {\langle #1,#2 \rangle}
+
+\sK:{\mathsf{K}}
+\sC:{\mathsf{C}}
+\sIV:{\mathsf{IV}}
+\sA:{\mathsf{A}}
+\sM:{\mathsf{M}}
+\sT:{\mathsf{T}}
+\sP:{\mathsf{P}}
+\sX:{\mathsf{X}}
+\sY:{\mathsf{Y}}
+\sH:{\mathsf{H}}
+\sJ:{\mathsf{J}}
+\sS:{\mathsf{S}}
+
+\aes:{\mathsf{AES}}
+\inc:{\mathsf{inc}}
+\len:{\mathsf{len}}
+\msb:{\mathsf{MSB}}
+\lsb:{\mathsf{LSB}}
+\int:{\mathsf{int}}
+\icb:{\mathsf{ICB}}
+\ghash:{\mathsf{GHASH}}
+\tcr:{\mathsf{AES\textsf{-}TCR}}
+\aesgcm:{\mathsf{AES\textsf{-}GCM}}

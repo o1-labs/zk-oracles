@@ -10,6 +10,7 @@
 - [Cryptographic Primitives](./primitives/overview.md)
     - [Garbled Circuit](./primitives/gc.md)
         - [Basics](./primitives/basics.md)
+        - [Free XOR](./primitives/freexor.md)
         - [Point and Permute](./primitives/pap.md)
         - [Row Reduction](./primitives/rr.md)
         - [Half Gate](./primitives/halfgate.md)
