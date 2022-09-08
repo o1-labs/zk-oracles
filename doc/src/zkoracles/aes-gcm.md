@@ -28,53 +28,98 @@ Before describing the details of the specification, we define following function
 
 - Let $\sX$ and $\sY$ be 128-bit strings, denote $\sX\cdot\sY$ the multiplication in $\mathsf{GF}(2^{128})$ defined by the polynomial $x^{128}+x^7+x^2+x+1$.
 
-## $\ghash$ Function
+## GHASH Function
 The $\ghash$ function defined below is used to compute the tag.
 
-- $\ghash_\sH(\sX)$ takes as input a bit string $\sX$, whose length is $128m$ for some positive integer $m$. $\sH$ is a pre-defined $128$-bit string.
+1. $\ghash_\sH(\sX)$ takes as input a bit string $\sX$, whose length is $128m$ for some positive integer $m$. $\sH$ is a pre-defined $128$-bit string.
 
-- Let $\sX_1,...,\sX_m$ denote the sequence of 128-bit blocks such that $\sX = \sX_1\|...\|\sX_m$.
+2. Let $\sX_1,...,\sX_m$ denote the sequence of 128-bit blocks such that $\sX = \sX_1\|...\|\sX_m$.
 
-- The function outputs $\sX_1\cdot \sH^m\oplus\sX_2\cdot \sH^{m-1}\oplus...\oplus\sX_m\cdot \sH$.
+3. The function outputs $\sX_1\cdot \sH^m\oplus\sX_2\cdot \sH^{m-1}\oplus...\oplus\sX_m\cdot \sH$.
 
 
-## $\tcr$ Function
+## AES-TCR Function
 The $\tcr$ function defined below is used for encryption and decryption.
-- $\tcr(\sK,\icb,\sX)$ takes as inputs a $128$-bit key $\sK$, an initial $128$-bit counter block $\icb$ and a bit string $\sX$.
+1. $\tcr(\sK,\icb,\sX)$ takes as inputs a $128$-bit key $\sK$, an initial $128$-bit counter block $\icb$ and a bit string $\sX$.
 
-- Let $n = \lceil \mathsf{len}(\sX)/128 \rceil$, and let ${\sX}_1,{\sX}_2,...,{\sX}_{n-1},{\sX}^*_n$ denote the unique block such that $\sX = {\sX}_1\|{\sX}_2\|...\|{\sX}_{n-1}\|{\sX}^*_n$. $\sX_1,...,\sX_{n-1}$ are complete blocks, $\sX^*_n$ is either a complete block or a nonempty partial block.
+2. Let $n = \lceil \mathsf{len}(\sX)/128 \rceil$, and let ${\sX}_1,{\sX}_2,...,{\sX}_{n-1},{\sX}^*_n$ denote the unique blocks such that $\sX = {\sX}_1\|{\sX}_2\|...\|{\sX}_{n-1}\|{\sX}^*_n$. $\sX_1,...,\sX_{n-1}$ are complete blocks, $\sX^*_n$ is either a complete block or a nonempty partial block.
  
-- Let $\icb_1 = \icb$, for $i = 2$ to $n$, let $\icb_i = \inc(\icb_{i-1})$.
+3. Let $\icb_1 = \icb$, for $i = 2$ to $n$, let $\icb_i = \inc(\icb_{i-1})$.
 
-- For $i = 1$ to $n-1$, let $\sY_i = \sX_i\oplus \aes(\sK,\icb_i)$.
+4. For $i = 1$ to $n-1$, let $\sY_i = \sX_i\oplus \aes(\sK,\icb_i)$.
 
-- Let $\sY^*_n = \sX^*_n\oplus \msb_{\len(\sX^*_n)}(\aes(\sK,\icb_n))$.
+5. Let $\sY^*_n = \sX^*_n\oplus \msb_{\len(\sX^*_n)}(\aes(\sK,\icb_n))$.
 
-- Let $\sY = \sY_1\|\sY_2\|...\|\sY^*_n$.
+6. Let $\sY = \sY_1\|\sY_2\|...\|\sY^*_n$.
 
-- Output $\sY$.
+7. Output $\sY$.
 
-## $\aesgcm$ Specification
+## AES-GCM Specification
 We now specify the AES-GCM encryption function. Note that only encryption is needed in zkOracles.
 
-- $\aesgcm(\sK,\sIV,\sP,\sA)$ takes as inputs a $128$-bit key $\sK$, an initial vector $\sIV$, a plaintext $\sP$ and associated data $\sA$.
+1. $\aesgcm(\sK,\sIV,\sP,\sA)$ takes as inputs a $128$-bit key $\sK$, an initial vector $\sIV$, a plaintext $\sP$ and associated data $\sA$.
 
-- Let $\sH = \aes(\sK,0^{128})$.
+2. Let $\sH = \aes(\sK,0^{128})$.
 
-- Let $\sJ_0$ be a $128$-bit block defined as follows: 
+3. Let $\sJ_0$ be a $128$-bit block defined as follows: 
     - If $\len(\sIV) = 96$, then let $\sJ_0 = \sIV\|0^{31}\|1$.
     - If $\len(\sIV) \neq 96$, then let $s = 128\cdot \lceil \len(\sIV)/128\rceil -\len(\sIV)$, and let 
     $$\sJ_0 = \ghash_\sH(\sIV\|0^{s+64}\|[\len(\sIV)]_{64}).$$
 
-- Let $\sC = \tcr(\sK,\inc(\sJ_0),\sP)$.
+4. Let $\sC = \tcr(\sK,\inc(\sJ_0),\sP)$.
 
-- Let $u = 128\cdot \lceil \len(\sC)/128\rceil -\len(\sC)$, $v = 128\cdot \lceil \len(\sA)/128\rceil -\len(\sA)$.
+5. Let $u = 128\cdot \lceil \len(\sC)/128\rceil -\len(\sC)$, $v = 128\cdot \lceil \len(\sA)/128\rceil -\len(\sA)$.
 
-- Define a $128$-bit block $\sS$ as follows:
+6. Define a $128$-bit block $\sS$ as follows:
 $$\sS = \ghash_\sH(\sA\|0^v\|\sC\|0^u\|[\len(\sA)]_{64}\|[\len(\sC)]_{64}).$$
 
-- Let $\sT = \tcr(\sK,\sJ_0,\sS) = \aes(\sK,\sJ_0)\oplus\sS$.
+7. Let $\sT = \tcr(\sK,\sJ_0,\sS) = \aes(\sK,\sJ_0)\oplus\sS$.
 
-- Output $(\sC,\sT)$.
+8. Output $(\sC,\sT)$.
 
 We refer the entire specification of AES-GCM to [this link](https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf).
+
+## Query Execution Protocol
+The query execution protocol in zkOracles is essentially a two-party computation protocol that compute the AES-GCM encryption function. We specify it in details with some optimizations.
+
+1. $\C$ takes as inputs $\sK_C$ and $\sP$, $\S$ takes as a input $\sK_S$, where $\sK_C$, $\sK_S$ are shares of a AES key. $\sIV$ and $\sA$ are public known messages.
+    - Note that $\C$ and $\S$ should store used $\sIV$s, if a new $\sIV$ is used more than once, abort.
+
+2. $\C$ and $\S$ take as inputs $\sK_C$ and $\sK_S$ respectively, and run $\pi^{\mathsf{PP}}_{\mathsf{2PC}}$ to generate shares pre-computed parameters $h_{\C,i}$ and $h_{\S,i}$ for $i\in[L]$ respectively. Where $L$ is determined by the length of $\sA$ and $\sP$.
+    - Note that $h_{\C,i}\oplus h_{\S,i} = \sH^i$ for $\sH = \aes(\sK_C\oplus\sK_S,0^{128})$.
+
+3. $\C$ and $\S$ compute $\sJ_0$ as follows:
+    - If $\len(\sIV) = 96$, both party locally compute $\sJ_0 = \sIV\|0^{32}\|1$.
+    - If $\len(\sIV) \neq 96$, let $s = 128\cdot\lceil\len(\sIV)/128\rceil-\len(\sIV)$. $\C$ and $\S$ take as inputs $h_{\C,i}$ and $h_{\S,i}$ for $i\in[L]$ respectively, and run the $\pi^{\mathsf{GHASH}}_{\mathsf{2PC}}$ protocol according to the input $\sX = \sIV\|0^{s+64}\|[\len(\sIV)]_{64}$.
+
+4. $\C$ takes as inputs $\sK_\C$ and $\sP$, $\S$ takes as inputs $\sK_\S, 0^{128}$, and run the $\pi^{\mathsf{AES\text{-}TCR}}_{\mathsf{2PC}}$ protocol with public initial counter block $\inc(\sJ_0)$. $\C$ obtains the ciphertext $\sC$.
+
+5. Let $u = 128\cdot \lceil \len(\sC)/128\rceil -\len(\sC)$, $v = 128\cdot \lceil \len(\sA)/128\rceil -\len(\sA)$.
+
+6. $\C$ and $\S$ take as inputs $h_{\C,i}$ and $h_{\S,i}$ for $i\in[L]$ respectively, and run the $\pi^{\mathsf{GHASH}}_{\mathsf{2PC}}$ protocol according to the input $\sX = \sA\|0^v\|\sC\|0^u\|[\len(\sA)]_{64}\|[\len(\sC)]_{64}$. $\C$ obtains the share $\sS_\C$, $\S$ obtains the share $\sS_\S$.
+
+7. $\C$ takes as inputs $\sK_\C$ and $\sS_\C$, $\S$ takes as inputs $\sK_\S$ and $\sS_\S$, and run the $\pi^{\mathsf{AES\text{-}TCR}}_{\mathsf{2PC}}$ protocol with public initial counter block $\sJ_0$. $\C$ obtains the ciphertext $\sT$.
+
+8. $\C$ outputs $(\sC,\sT)$, $\S$ outputs nothing.
+### The $\pi^{\mathsf{PP}}_{\mathsf{2PC}}$ Protocol
+$\C$ samples uniformly random 128-bit strings $h_{\C,i}$ for $i\in[L]$, and securely computes the function $F_{\mathsf{PP}}((\sK_C,h_{\C,1},...,h_{\C,L}),\sK_S)$ with $\S$ as follows.
+
+- Compute $\sH = \aes(\sK_C\oplus\sK_S,0^{128})$.
+
+- Compute $h_{\S,i} = h_{\C,i}\oplus \sH^i$ for $i\in[L]$.
+
+- Output $h_{\S,i}$ to $\S$, for $i\in[L]$.
+### The $\pi^{\mathsf{GHASH}}_{\mathsf{2PC}}$ Protocol
+Given a public input $\sX$, this protocol securely computes the $\ghash$ with pre-computed parameters. 
+$\C$ samples uniformly random $128$-bit string $\sS_\C$.
+
+- $\C$ and $\S$ takes as inputs $h_{\C,i}$ and $h_{\S,i}$ for $i\in[L]$, respectively. 
+
+- Let $\sX = \sX_1\|\sX_2\|...\|\sX_L$.
+
+- Compute $\sS = \sX_1\cdot (h_{\C,L}\oplus h_{\S,L})\oplus \sX_2\cdot(h_{\C,L-1}\oplus h_{\S,L-1})\oplus...\oplus\sX_L\cdot (h_{\C,1}\oplus h_{\S,1})$.
+
+- Output $\sS_\S = \sS\oplus \sS_\C$ to $\S$, and output $\sS_\C$ to $\C$.
+### The $\pi^{\mathsf{AES\text{-}TCR}}_{\mathsf{2PC}}$ Protocol
+Given a public initial counter block $\icb$, this protocol securely computes the $\aesgcm$ function. 
+$\C$ takes as inputs $\sK_\C$ and $\sP_\C$, $\S$ takes as inputs $\sK_\S$ and $\sP_\C$. They collaboratively  compute $\aesgcm(\sK_\C\oplus\sK_\S,\icb,\sP_\C\oplus\sP_\S)$, and the output is given to $\C$.

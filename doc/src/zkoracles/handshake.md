@@ -3,7 +3,7 @@ This section describes in detail the 3PC handshake phase in zkOracles protocol.
 
 In this version, we focus on TLS 1.2 and the TLS-compatible ECDHE key exchange protocol. 
 
-## Notation and Preliminaries
+## Notations and Preliminaries
 
 - Let $\EC$ denote the EC group with base field $\Fq$ and scale field $\Fp$ used in ECDHE.
 - Let $G$ denote the generator of $\EC$.
@@ -109,7 +109,7 @@ $$F_{\mathsf{PRFCheck}} = \mathsf{PRF}(\mathsf{mk}_\C\oplus\mathsf{mk}_\N, ``\ma
 
 $h,s$ are public, the output is given to $\C$.
 ### The $\pi_{\mathsf{2PC}}^{\mathsf{Der}}$ Protocol
-The function $F_{\mathsf{Der}}((z_\C,\mathsf{mk}_\C,\mathsf{sk}_\C),z_\N)$ computed in this protocol is as follows, where $\mathsf{mk}_\C$ and $\mathsf{sk}_\C$ are uniformly chosen by $\C$ in the 3PC handshake protocol.
+$\C$ samples uniformly random bit strings $\mathsf{mk}_\C,\mathsf{sk}_\C$, and securely compute the following function $F_{\mathsf{Der}}((z_\C,\mathsf{mk}_\C,\mathsf{sk}_\C),z_\N)$.
 
 1. Compute $z = z_\C+z_\N\mod q$.
 
