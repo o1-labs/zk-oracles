@@ -25,6 +25,7 @@
 \sS:{\small \mathsf{S}}
 \sQ:{\small \mathsf{Q}}
 \sR:{\small \mathsf{R}}
+\sI:{\small \mathsf{I}}
 
 \aes:{\small \mathsf{AES}}
 \inc:{\small \mathsf{inc}}
@@ -43,3 +44,6 @@
 \and:{\small \mathsf{AND}}
 \xor:{\small \mathsf{XOR}}
 \inv:{\small \mathsf{INV}}
+\enc:{\small \mathsf{Enc}}
+\gc:{\small \mathcal{GC}}
+\bit:{\{0,1\}}

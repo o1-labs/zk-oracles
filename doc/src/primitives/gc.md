@@ -1,5 +1,5 @@
 # Garbled Circuit
-For general-purpose secure computation protocols, we often view functions as arithmetic circuits or boolean circuits. In zkOracles, we use boolean circuits because it involves in securely computing ciphers (e.g., AES) which consist of massive boolean gates.
+For general-purpose secure computation protocols, we often view functions as arithmetic circuits or boolean circuits. In zkOracles, we use boolean circuits because it involves in securely computing ciphers (e.g., AES), which consist of massive boolean gates.
 
 ## Boolean Circuits
 Boolean circuits consists of $\and$ gates ($a~\and~ b = a\wedge b$) and $\xor$ gates ($a~\xor~b = a\oplus b$). These two gates are universal and we could represent any polynomial-size functions with them. In 2PC protocols, we also use $\inv$ gates ($\inv(a) = 1\oplus a$) for optimization.
@@ -41,7 +41,7 @@ The second line
 ```
 2 128 128 
 ```
-means that the circuit has 2 inputs, the both inputs has 128 bits.
+means that the circuit has 2 inputs, both inputs have 128 bits.
 
 The third line
 ```
