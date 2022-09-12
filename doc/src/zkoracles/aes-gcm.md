@@ -82,44 +82,44 @@ We refer the entire specification of AES-GCM to [this link](https://nvlpubs.nist
 ## Query Execution Protocol
 The query execution protocol in zkOracles is essentially a two-party computation protocol that compute the AES-GCM encryption function. We specify it in details with some optimizations.
 
-1. $\C$ takes as inputs $\sK_C$ and $\sP$, $\S$ takes as a input $\sK_S$, where $\sK_C$, $\sK_S$ are shares of a AES key. $\sIV$ and $\sA$ are public known messages.
-    - Note that $\C$ and $\S$ should store used $\sIV$s, if a new $\sIV$ is used more than once, abort.
+1. $\C$ takes as inputs $\sK_\C$ and $\sP$, $\N$ takes as a input $\sK_\N$, where $\sK_\C$, $\sK_\N$ are shares of a AES key. $\sIV$ and $\sA$ are public known messages.
+    - Note that $\C$ and $\N$ should store used $\sIV$s, if a new $\sIV$ is used more than once, abort.
 
-2. $\C$ and $\S$ take as inputs $\sK_C$ and $\sK_S$ respectively, and run $\pi^{\mathsf{PP}}_{\mathsf{2PC}}$ to generate shares pre-computed parameters $h_{\C,i}$ and $h_{\S,i}$ for $i\in[L]$ respectively. Where $L$ is determined by the length of $\sA$ and $\sP$.
-    - Note that $h_{\C,i}\oplus h_{\S,i} = \sH^i$ for $\sH = \aes(\sK_C\oplus\sK_S,0^{128})$.
+2. $\C$ and $\N$ take as inputs $\sK_\C$ and $\sK_\N$ respectively, and run $\pi^{\mathsf{PP}}_{\mathsf{2PC}}$ to generate shares pre-computed parameters $h_{\C,i}$ and $h_{\N,i}$ for $i\in[L]$ respectively. Where $L$ is determined by the length of $\sA$ and $\sP$.
+    - Note that $h_{\C,i}\oplus h_{\N,i} = \sH^i$ for $\sH = \aes(\sK_\C\oplus\sK_\N,0^{128})$.
 
-3. $\C$ and $\S$ compute $\sJ_0$ as follows:
+3. $\C$ and $\N$ compute $\sJ_0$ as follows:
     - If $\len(\sIV) = 96$, both party locally compute $\sJ_0 = \sIV\|0^{32}\|1$.
-    - If $\len(\sIV) \neq 96$, let $s = 128\cdot\lceil\len(\sIV)/128\rceil-\len(\sIV)$. $\C$ and $\S$ take as inputs $h_{\C,i}$ and $h_{\S,i}$ for $i\in[L]$ respectively, and run the $\pi^{\mathsf{GHASH}}_{\mathsf{2PC}}$ protocol according to the input $\sX = \sIV\|0^{s+64}\|[\len(\sIV)]_{64}$.
+    - If $\len(\sIV) \neq 96$, let $s = 128\cdot\lceil\len(\sIV)/128\rceil-\len(\sIV)$. $\C$ and $\S$ take as inputs $h_{\C,i}$ and $h_{\N,i}$ for $i\in[L]$ respectively, and run the $\pi^{\mathsf{GHASH}}_{\mathsf{2PC}}$ protocol according to the input $\sX = \sIV\|0^{s+64}\|[\len(\sIV)]_{64}$.
 
-4. $\C$ takes as inputs $\sK_\C$ and $\sP$, $\S$ takes as inputs $\sK_\S, 0^{128}$, and run the $\pi^{\mathsf{AES\text{-}TCR}}_{\mathsf{2PC}}$ protocol with public initial counter block $\inc(\sJ_0)$. $\C$ obtains the ciphertext $\sC$.
+4. $\C$ takes as inputs $\sK_\C$ and $\sP$, $\N$ takes as inputs $\sK_\N, 0^{128}$, and run the $\pi^{\mathsf{AES\text{-}TCR}}_{\mathsf{2PC}}$ protocol with public initial counter block $\inc(\sJ_0)$. $\C$ obtains the ciphertext $\sC$.
 
 5. Let $u = 128\cdot \lceil \len(\sC)/128\rceil -\len(\sC)$, $v = 128\cdot \lceil \len(\sA)/128\rceil -\len(\sA)$.
 
-6. $\C$ and $\S$ take as inputs $h_{\C,i}$ and $h_{\S,i}$ for $i\in[L]$ respectively, and run the $\pi^{\mathsf{GHASH}}_{\mathsf{2PC}}$ protocol according to the input $\sX = \sA\|0^v\|\sC\|0^u\|[\len(\sA)]_{64}\|[\len(\sC)]_{64}$. $\C$ obtains the share $\sS_\C$, $\S$ obtains the share $\sS_\S$.
+6. $\C$ and $\N$ take as inputs $h_{\C,i}$ and $h_{\N,i}$ for $i\in[L]$ respectively, and run the $\pi^{\mathsf{GHASH}}_{\mathsf{2PC}}$ protocol according to the input $\sX = \sA\|0^v\|\sC\|0^u\|[\len(\sA)]_{64}\|[\len(\sC)]_{64}$. $\C$ obtains the share $\sS_\C$, $\N$ obtains the share $\sS_\N$.
 
-7. $\C$ takes as inputs $\sK_\C$ and $\sS_\C$, $\S$ takes as inputs $\sK_\S$ and $\sS_\S$, and run the $\pi^{\mathsf{AES\text{-}TCR}}_{\mathsf{2PC}}$ protocol with public initial counter block $\sJ_0$. $\C$ obtains the ciphertext $\sT$.
+7. $\C$ takes as inputs $\sK_\C$ and $\sS_\C$, $\N$ takes as inputs $\sK_\N$ and $\sS_\N$, and run the $\pi^{\mathsf{AES\text{-}TCR}}_{\mathsf{2PC}}$ protocol with public initial counter block $\sJ_0$. $\C$ obtains the ciphertext $\sT$.
 
 8. $\C$ outputs $(\sC,\sT)$, $\S$ outputs nothing.
 ### The $\pi^{\mathsf{PP}}_{\mathsf{2PC}}$ Protocol
-$\C$ samples uniformly random 128-bit strings $h_{\C,i}$ for $i\in[L]$, and securely computes the function $F_{\mathsf{PP}}((\sK_C,h_{\C,1},...,h_{\C,L}),\sK_S)$ with $\S$ as follows.
+$\C$ samples uniformly random 128-bit strings $h_{\C,i}$ for $i\in[L]$, and securely computes the function $F_{\mathsf{PP}}((\sK_\C,h_{\C,1},...,h_{\C,L}),\sK_\N)$ with $\N$ as follows.
 
-- Compute $\sH = \aes(\sK_C\oplus\sK_S,0^{128})$.
+- Compute $\sH = \aes(\sK_\C\oplus\sK_\N,0^{128})$.
 
-- Compute $h_{\S,i} = h_{\C,i}\oplus \sH^i$ for $i\in[L]$.
+- Compute $h_{\N,i} = h_{\C,i}\oplus \sH^i$ for $i\in[L]$.
 
-- Output $h_{\S,i}$ to $\S$, for $i\in[L]$.
+- Output $h_{\N,i}$ to $\N$, for $i\in[L]$.
 ### The $\pi^{\mathsf{GHASH}}_{\mathsf{2PC}}$ Protocol
 Given a public input $\sX$, this protocol securely computes the $\ghash$ with pre-computed parameters. 
 $\C$ samples uniformly random $128$-bit string $\sS_\C$.
 
-- $\C$ and $\S$ takes as inputs $h_{\C,i}$ and $h_{\S,i}$ for $i\in[L]$, respectively. 
+- $\C$ and $\N$ takes as inputs $h_{\C,i}$ and $h_{\S,i}$ for $i\in[L]$, respectively. 
 
 - Let $\sX = \sX_1\|\sX_2\|...\|\sX_L$.
 
-- Compute $\sS = \sX_1\cdot (h_{\C,L}\oplus h_{\S,L})\oplus \sX_2\cdot(h_{\C,L-1}\oplus h_{\S,L-1})\oplus...\oplus\sX_L\cdot (h_{\C,1}\oplus h_{\S,1})$.
+- Compute $\sS = \sX_1\cdot (h_{\C,L}\oplus h_{\N,L})\oplus \sX_2\cdot(h_{\C,L-1}\oplus h_{\N,L-1})\oplus...\oplus\sX_L\cdot (h_{\C,1}\oplus h_{\N,1})$.
 
-- Output $\sS_\S = \sS\oplus \sS_\C$ to $\S$, and output $\sS_\C$ to $\C$.
+- Output $\sS_\N = \sS\oplus \sS_\C$ to $\N$, and output $\sS_\C$ to $\C$.
 ### The $\pi^{\mathsf{AES\text{-}TCR}}_{\mathsf{2PC}}$ Protocol
-Given a public initial counter block $\icb$, this protocol securely computes the $\aesgcm$ function. 
-$\C$ takes as inputs $\sK_\C$ and $\sP_\C$, $\S$ takes as inputs $\sK_\S$ and $\sP_\C$. They collaboratively  compute $\aesgcm(\sK_\C\oplus\sK_\S,\icb,\sP_\C\oplus\sP_\S)$, and the output is given to $\C$.
+Given a public initial counter block $\icb$, this protocol securely computes the $\tcr$ function. 
+$\C$ takes as inputs $\sK_\C$ and $\sP_\C$, $\N$ takes as inputs $\sK_\N$ and $\sP_\C$. They collaboratively  compute $\tcr(\sK_\C\oplus\sK_\N,\icb,\sP_\C\oplus\sP_\N)$, and the output is given to $\C$.

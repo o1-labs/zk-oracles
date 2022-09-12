@@ -23,6 +23,8 @@
 \sH:{\mathsf{H}}
 \sJ:{\mathsf{J}}
 \sS:{\mathsf{S}}
+\sQ:{\mathsf{Q}}
+\sR:{\mathsf{R}}
 
 \aes:{\mathsf{AES}}
 \inc:{\mathsf{inc}}
@@ -34,3 +36,6 @@
 \ghash:{\mathsf{GHASH}}
 \tcr:{\mathsf{AES\textsf{-}TCR}}
 \aesgcm:{\mathsf{AES\textsf{-}GCM}}
+\com:{\mathsf{Com}}
+\sha:{\mathsf{SHA}256}
+\stmt:{\mathsf{Stmt}}
