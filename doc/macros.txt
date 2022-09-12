@@ -1,6 +1,6 @@
-\C:{\mathcal{C}}
-\S:{\mathcal{S}}
-\N:{\mathcal{N}}
+\C:{\small \mathcal{C}}
+\S:{\small \mathcal{S}}
+\N:{\small \mathcal{N}}
 
 
 \Fp:{\mathbb{F}_p}
@@ -11,31 +11,35 @@
 
 \innerprod: {\langle #1,#2 \rangle}
 
-\sK:{\mathsf{K}}
-\sC:{\mathsf{C}}
-\sIV:{\mathsf{IV}}
-\sA:{\mathsf{A}}
-\sM:{\mathsf{M}}
-\sT:{\mathsf{T}}
-\sP:{\mathsf{P}}
-\sX:{\mathsf{X}}
-\sY:{\mathsf{Y}}
-\sH:{\mathsf{H}}
-\sJ:{\mathsf{J}}
-\sS:{\mathsf{S}}
-\sQ:{\mathsf{Q}}
-\sR:{\mathsf{R}}
+\sK:{\small \mathsf{K}}
+\sC:{\small \mathsf{C}}
+\sIV:{\small \mathsf{IV}}
+\sA:{\small \mathsf{A}}
+\sM:{\small \mathsf{M}}
+\sT:{\small \mathsf{T}}
+\sP:{\small \mathsf{P}}
+\sX:{\small \mathsf{X}}
+\sY:{\small \mathsf{Y}}
+\sH:{\small \mathsf{H}}
+\sJ:{\small \mathsf{J}}
+\sS:{\small \mathsf{S}}
+\sQ:{\small \mathsf{Q}}
+\sR:{\small \mathsf{R}}
 
-\aes:{\mathsf{AES}}
-\inc:{\mathsf{inc}}
-\len:{\mathsf{len}}
-\msb:{\mathsf{MSB}}
-\lsb:{\mathsf{LSB}}
-\int:{\mathsf{int}}
-\icb:{\mathsf{ICB}}
-\ghash:{\mathsf{GHASH}}
-\tcr:{\mathsf{AES\textsf{-}TCR}}
-\aesgcm:{\mathsf{AES\textsf{-}GCM}}
-\com:{\mathsf{Com}}
-\sha:{\mathsf{SHA}256}
-\stmt:{\mathsf{Stmt}}
+\aes:{\small \mathsf{AES}}
+\inc:{\small \mathsf{inc}}
+\len:{\small \mathsf{len}}
+\msb:{\small \mathsf{MSB}}
+\lsb:{\small \mathsf{LSB}}
+\int:{\small \mathsf{int}}
+\icb:{\small \mathsf{ICB}}
+\ghash:{\small \mathsf{GHASH}}
+\tcr:{\small \mathsf{AES\textsf{-}TCR}}
+\aesgcm:{\small \mathsf{AES\textsf{-}GCM}}
+\com:{\small \mathsf{Com}}
+\sha:{\small\mathsf{SHA}256}
+\stmt:{\small \mathsf{Stmt}}
+
+\and:{\small \mathsf{AND}}
+\xor:{\small \mathsf{XOR}}
+\inv:{\small \mathsf{INV}}
