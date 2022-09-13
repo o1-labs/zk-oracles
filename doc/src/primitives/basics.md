@@ -12,10 +12,10 @@ Given a circuit and related inputs, the garbler handles the circuit as follows.
 
 |$a$|$b$|$c$|
 |-|-|-|
-|0|0|0|
-|0|1|0|
-|1|0|0|
-|1|1|1|
+|$0$|$0$|$0$|
+|$0$|$1$|$0$|
+|$1$|$0$|$0$|
+|$1$|$1$|$1$|
 
 - The garbler chooses two uniformly random $128$-bit strings for each wire. We call these strings the truth labels. Label $0$ represents the value $0$ and label $1$ represents the value $1$. The garbler replaces the truth table with the following label table.
 

@@ -11,10 +11,11 @@
     - [Garbled Circuit](./primitives/gc.md)
         - [Basics](./primitives/basics.md)
         - [Point and Permute](./primitives/pap.md)
-        - [Fixed-Key-AES Hashes](./primitives/fkaes.md)
         - [Free XOR](./primitives/freexor.md)
         - [Row Reduction](./primitives/rr.md)
         - [Half Gate](./primitives/halfgate.md)
+        - [Fixed-Key-AES Hashes](./primitives/fkaes.md)
+
     - [Oblivious Transfer](./primitives/ot.md)
         - [Base OT](./primitives/baseot.md)
         - [OT Extension](./primitives/ote.md)
