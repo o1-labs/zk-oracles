@@ -5,17 +5,17 @@ To be compatible with the Free-XOR optimization, the garbled $\and$ gates are of
 
 |Color Bits $(a,b,c)$|Garbled Gate|
 |:-:|:-:|
-|$(\zero,\zero,\zero)$|$\sH(\gid,X_a,X_b\oplus \Delta)\oplus X_c$|
-|$(\zero,\one,\zero)$|$\sH(\gid,X_a,X_b)\oplus X_c$|
-|$(\one,\zero,\one)$|$\sH(\gid,X_a\oplus \Delta,X_b\oplus \Delta)\oplus X_c\oplus \Delta$|
-|$(\one,\one,\zero)$|$\sH(\gid,X_a\oplus \Delta,X_b)\oplus X_c$|
+|$(\zero,\zero,\zero)$|$\sH(X_a,X_b\oplus \Delta)\oplus X_c$|
+|$(\zero,\one,\zero)$|$\sH(X_a,X_b)\oplus X_c$|
+|$(\one,\zero,\one)$|$\sH(X_a\oplus \Delta,X_b\oplus \Delta)\oplus X_c\oplus \Delta$|
+|$(\one,\one,\zero)$|$\sH(X_a\oplus \Delta,X_b)\oplus X_c$|
 
-Since $\sH$ is modeled as a random oracle, one could set the first row of the above garbled gate as $0$, and then we could remove that row from the garbled gate. This means that we could choose $X_c = \sH(\gid,X_a,X_b\oplus \Delta)$. Therefore, the garbled circuit is changed as follows.
+Since $\sH$ is modeled as a random oracle, one could set the first row of the above garbled gate as $0$, and then we could remove that row from the garbled gate. This means that we could choose $X_c = \sH(X_a,X_b\oplus \Delta)$. Therefore, the garbled circuit is changed as follows.
 
 |Color Bits $(a,b,c)$|Garbled Gate|
 |:-:|:-:|
-|$(\zero,\one,\zero)$|$\sH(\gid,X_a,X_b)\oplus \sH(\gid,X_a,X_b\oplus \Delta)$|
-|$(\one,\zero,\one)$|$\sH(\gid,X_a\oplus \Delta,X_b\oplus \Delta)\oplus \sH(\gid,X_a,X_b\oplus \Delta)\oplus \Delta$|
-|$(\one,\one,\zero)$|$\sH(\gid,X_a\oplus \Delta,X_b)\oplus \sH(\gid,X_a,X_b\oplus \Delta)$|
+|$(\zero,\one,\zero)$|$\sH(X_a,X_b)\oplus \sH(X_a,X_b\oplus \Delta)$|
+|$(\one,\zero,\one)$|$\sH(X_a\oplus \Delta,X_b\oplus \Delta)\oplus \sH(X_a,X_b\oplus \Delta)\oplus \Delta$|
+|$(\one,\one,\zero)$|$\sH(X_a\oplus \Delta,X_b)\oplus \sH(X_a,X_b\oplus \Delta)$|
 
 The evaluator handles garbled $\and$ gates as before, except he/she directly computes the hash function if the `color` bits are $(\zero,\zero)$.
