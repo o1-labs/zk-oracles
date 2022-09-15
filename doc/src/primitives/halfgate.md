@@ -79,10 +79,10 @@ Let $X_b^0,X_b^1 = X_b^0\oplus \Delta$ be the labels for $b$, let $p = \lsb(X_b^
 
 - For any non-input wire $i$, do the following.
     - If the gate associated to $i$ is a $\xor$ gate.
-        - let $(a,b)\leftarrow\mathsf{GateInputs}(\sC,i)$.
+        - Let $(a,b)\leftarrow\mathsf{GateInputs}(\sC,i)$.
         - Compute $X_i^0 = X_a^0\oplus X_b^0$ and $X_i^1 = X_i^0\oplus \Delta$.
     - If the gate associated to $i$ is an $\inv$ gate.
-        - let $a\leftarrow\mathsf{GateInputs}(\sC,i)$,
+        - Let $a\leftarrow\mathsf{GateInputs}(\sC,i)$,
         - Compute $X_i^0 = X_a^0\oplus P$ and $X_i^1 = X_i^0\oplus \Delta$.
     - If the gate associated to $i$ is an $\and$ gate.
         - let $(a,b)\leftarrow\mathsf{GateInputs}(\sC,i)$,
@@ -114,19 +114,19 @@ Let $X_b^0,X_b^1 = X_b^0\oplus \Delta$ be the labels for $b$, let $p = \lsb(X_b^
 
 - For any non-input wire $i$, do the following.
     - If the gate associated to $i$ is a $\xor$ gate.
-        - let $(a,b)\leftarrow\mathsf{GateInputs}(\sC,i)$.
+        - Let $(a,b)\leftarrow\mathsf{GateInputs}(\sC,i)$.
         - Compute $X_i = X_a\oplus X_b$.
     - If the gate associated to $i$ is an $\inv$ gate.
-        - let $a\leftarrow\mathsf{GateInputs}(\sC,i)$,
+        - Let $a\leftarrow\mathsf{GateInputs}(\sC,i)$,
         - Compute $X_i = X_a\oplus P$.
     - If the gate associated to $i$ is an $\and$ gate.
-        - let $(a,b)\leftarrow\mathsf{GateInputs}(\sC,i)$,
-        - let $s_a = \lsb(X_a)$, $s_b = \lsb(X_b)$.
+        - Let $(a,b)\leftarrow\mathsf{GateInputs}(\sC,i)$,
+        - Let $s_a = \lsb(X_a)$, $s_b = \lsb(X_b)$.
         - Parse $T_i$ as $(T_G,T_E)$.
-        - $X_G = \sH(\counter,X_a)\oplus s_a\cdot T_G$.
+        - Compute $X_G = \sH(\counter,X_a)\oplus s_a\cdot T_G$.
         - $\counter = \counter + 1$.
-        - $X_E = \sH(\counter, X_b)\oplus s_b(T_E\oplus X_a)$.
-        - $X_i = X_G\oplus X_E$.
+        - Compute $X_E = \sH(\counter, X_b)\oplus s_b(T_E\oplus X_a)$.
+        - Let $X_i = X_G\oplus X_E$.
 
 - For $i\in\mathsf{CircuitOutputs}(\sC)$, do the following.
     - Let $Y_i = X_i$.
