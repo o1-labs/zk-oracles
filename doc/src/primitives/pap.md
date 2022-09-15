@@ -37,7 +37,7 @@ The hash function could be truncated $\sha$. The garbled gate is then as follows
 |$(\one,\zero,\one)$|$\sH(X_a^1,X_b^1)\oplus X_c^1$|
 |$(\one,\one,\zero)$|$\sH(X_a^1,X_b^0)\oplus X_c^0$|
 
-For security and efficiency reasons, one usually uses tweakable hash functions: $\sH(\mathsf{tweak},\cdot)$, where $\mathsf{tweak}$ could be the gate identifier. Then the garbled gate is as follows. The optimization of tweakable hash functions is given in following subsections.
+For security and efficiency reasons, one usually uses tweakable hash functions: $\sH(\mathsf{tweak},\cdot)$, where $\mathsf{tweak}$ is public and unique for different groups of calls to $\sH$. E.g., $\mathsf{tweak}$ could be the gate identifier. Then the garbled gate is as follows. The optimization of tweakable hash functions is given in following subsections.
 
 |Color Bits $(a,b,c)$|Garbled Gate|
 |:-:|:-:|

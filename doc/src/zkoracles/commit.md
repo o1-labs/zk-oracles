@@ -9,6 +9,6 @@ This section describes the Commit phase of zkOracles protocol.
 
 - The Notary signs $\com_\C\|\sQ'\|\sR'\|\sK_N$ with his public key and outputs a signature $\sigma_\N$. The Notary sends $\com_\C\|\sQ'\|\sR'\|\sK_N\|\sigma_\N$ to the Client.
 
-- The Client recover the symmetric key $\sK = \sK_\C\oplus\sK_\N$ to decrypt and authenticate $\sR'$. This step is exactly the same as in the TLS standard.
+- The Client recovers the symmetric key $\sK = \sK_\C\oplus\sK_\N$ to decrypt and authenticate $\sR'$. This step is exactly the same as in the TLS standard.
 
 

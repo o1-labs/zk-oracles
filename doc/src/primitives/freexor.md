@@ -9,7 +9,7 @@ The Free-XOR optimization significantly improves the efficiency of garbled circu
 
 - Let $X_a\oplus X_b$ and $X_a\oplus X_b\oplus \Delta$ denote the 0 label and 1 label for input wire $c$, respectively.
 
-- The garbler does not need to send garbled gate for each $\xor$ gate. The evaluator locally xor the input labels of $\xor$ gate to get the output label. This is correct because given a $\xor$ gate, the label table could be as follows.
+- The garbler does not need to send garbled gate for each $\xor$ gate. The evaluator locally $\xor$s the input labels of $\xor$ gate to gets the output label. This is correct because given a $\xor$ gate, the label table could be as follows.
 
 |$a$|$b$|$c$|
 |:-:|:-:|:-:|

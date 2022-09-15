@@ -50,3 +50,4 @@
 \zero:{\color{red}{0}}
 \one:{\color{blue}{1}}
 \gid:{\mathsf{gid}}
+\counter:{\mathsf{counter}}
