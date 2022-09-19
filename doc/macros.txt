@@ -27,6 +27,14 @@
 \sR:{\small \mathsf{R}}
 \sI:{\small \mathsf{I}}
 
+\bF:{\small \mathbb{F}}
+\bG:{\small \mathbb{G}}
+
+\S:{\small S}
+\G:{\small G}
+\T:{\small T}
+\R:{\small R}
+
 \aes:{\small \mathsf{AES}}
 \inc:{\small \mathsf{inc}}
 \len:{\small \mathsf{len}}

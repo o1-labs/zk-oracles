@@ -15,4 +15,4 @@ An OT protocol involves two parties: the sender and the receiver. The sender has
 
 Due to a result of Impagliazzo and Rudich in [this paper](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.14.6170&rep=rep1&type=pdf), it is very unlikely that OT is possible without the use of public-key cryptography. However, OT can be efficiently extended. That is, starting with a small number of base OTs, one could create many more OTs with only symmetric primitives.
 
-The seminal work of [IKNP03](https://www.iacr.org/archive/crypto2003/27290145/27290145.pdf) presented a very efficient protocol for extending OTs, requiring only black-box use of symmetric primitives and $\lambda$ base OTs, where $\lambda$ is the security parameter. This doc focus on the family of protocols inspired by IKNP.
+The seminal work of [IKNP03](https://www.iacr.org/archive/crypto2003/27290145/27290145.pdf) presented a very efficient protocol for extending OTs, requiring only black-box use of symmetric primitives and $\lambda$ base OTs, where $\lambda$ is the security parameter. This doc focuses on the family of protocols inspired by IKNP.
