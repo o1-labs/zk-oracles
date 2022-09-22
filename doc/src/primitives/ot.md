@@ -6,11 +6,11 @@ An OT protocol involves two parties: the sender and the receiver. The sender has
 ```text
                     Sender                               Receiver
     
-                                      |----------|
-                    (x_0,x_1)  ------>|          |<------ b
+                                      +----------+
+                    (x_0,x_1) ------->|          |<------ b
                                       | OT Prot. |
                                       |          |-------> x_b 
-                                      |----------|                
+                                      +----------+                
 ```
 
 Due to a result of Impagliazzo and Rudich in [this paper](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.14.6170&rep=rep1&type=pdf), it is very unlikely that OT is possible without the use of public-key cryptography. However, OT can be efficiently extended. That is, starting with a small number of base OTs, one could create many more OTs with only symmetric primitives.
