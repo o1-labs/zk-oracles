@@ -1,5 +1,7 @@
 use super::{GCGenerator, GeneratorError};
-use crate::CompleteGarbledCircuit;
+use crate::{
+    GarbledCircuit, GarbledCircuitLocal, GarbledCircuitTable, InputZeroLabel, OutputZeroLabel,
+};
 use circuit::gate::{Circuit, Gate};
 use crypto_core::{
     block::{Block, SELECT_MASK},
@@ -7,22 +9,29 @@ use crypto_core::{
 };
 use rand::{CryptoRng, Rng};
 
-pub struct HalfGateGenerator;
+pub struct HalfGateGenerator {
+    counter: u128,
+}
 
 impl HalfGateGenerator {
+    pub fn new() -> Self {
+        Self { counter: 0 }
+    }
+
     #[inline]
     pub fn and_gate(
-        &self,
+        &mut self,
         x: [Block; 2],
         y: [Block; 2],
         delta: Block,
-        gid: usize,
     ) -> ([Block; 2], [Block; 2]) {
         let pa = x[0].lsb() as usize;
         let pb = y[0].lsb() as usize;
 
-        let index = gid as u128;
-        let index_next = (gid + 1) as u128;
+        let index = self.counter;
+        self.counter = self.counter + 1;
+        let index_next = self.counter;
+        self.counter = self.counter + 1;
 
         let hash_x0 = AES_HASH.tccr_hash(index.into(), x[0]);
         let hash_y0 = AES_HASH.tccr_hash(index_next.into(), y[0]);
@@ -57,10 +66,10 @@ impl HalfGateGenerator {
 
 impl GCGenerator for HalfGateGenerator {
     fn garble<R: Rng + CryptoRng>(
-        &self,
+        &mut self,
         rng: &mut R,
         circ: &Circuit,
-    ) -> Result<CompleteGarbledCircuit, GeneratorError> {
+    ) -> Result<GarbledCircuit, GeneratorError> {
         // Generate random delta
         let mut delta = rng.gen::<Block>();
         // Set delta lsb to 1
@@ -83,7 +92,6 @@ impl GCGenerator for HalfGateGenerator {
         }
 
         // Process each gate
-        let mut gid = 1;
         for gate in circ.gates.iter() {
             match *gate {
                 Gate::Inv { lin_id, out_id, .. } => {
@@ -116,26 +124,39 @@ impl GCGenerator for HalfGateGenerator {
                         wire_labels[lin_id].ok_or(GeneratorError::UninitializedLabel(lin_id))?;
                     let y =
                         wire_labels[rin_id].ok_or(GeneratorError::UninitializedLabel(rin_id))?;
-                    let (z, t) = self.and_gate(x, y, delta, gid);
+                    let (z, t) = self.and_gate(x, y, delta);
                     table.push(t);
                     wire_labels[out_id] = Some(z);
-                    gid += 1;
                 }
             };
         }
 
-        let mut output_bits: Vec<bool> = Vec::with_capacity(circ.noutput_wires);
-        for wire in wire_labels.iter().skip(circ.nwires - circ.noutput_wires) {
-            output_bits.push(wire.unwrap()[0].lsb());
+        //let mut output_bits: Vec<bool> = Vec::with_capacity(circ.noutput_wires);
+        let mut output_zero_labels: Vec<OutputZeroLabel> = Vec::with_capacity(circ.noutput_wires);
+
+        for (id, wire) in (circ.nwires - circ.noutput_wires..circ.nwires)
+            .zip(wire_labels.iter().skip(circ.nwires - circ.noutput_wires))
+        {
+            output_zero_labels.push(OutputZeroLabel {
+                id,
+                zero_label: wire.unwrap()[0],
+            });
         }
 
-        Ok(CompleteGarbledCircuit::new(
-            input_labels,
-            wire_labels.into_iter().map(|w| w.unwrap()).collect(),
-            table,
-            output_bits,
-            public_one_label,
-            delta,
-        ))
+        let input_zero_labels = input_labels
+            .into_iter()
+            .enumerate()
+            .map(|(id, x)| InputZeroLabel {
+                id,
+                zero_label: x[0],
+            })
+            .collect();
+
+        let gc_local = GarbledCircuitLocal::new(input_zero_labels, output_zero_labels, delta);
+
+        let output_decode_info = gc_local.decode_info();
+        let gc_table = GarbledCircuitTable::new(table, output_decode_info, public_one_label);
+
+        Ok(GarbledCircuit::new(gc_table, gc_local))
     }
 }

@@ -9,11 +9,11 @@ fn bench_garble_adder64(c: &mut Criterion) {
     c.bench_function("garbling adder64", |b| {
         let circ = Circuit::load("../circuit/circuit_files/bristol/adder64.txt").unwrap();
         let mut rng = AesRng::new();
-        let gen = HalfGateGenerator;
+        let mut gen = HalfGateGenerator::new();
 
         b.iter(|| {
-            let complete_gc = gen.garble(&mut rng, &circ).unwrap();
-            criterion::black_box(complete_gc);
+            let gc = gen.garble(&mut rng, &circ).unwrap();
+            criterion::black_box(gc);
         });
     });
 }
@@ -22,11 +22,11 @@ fn bench_garble_aes_128_reverse(c: &mut Criterion) {
     c.bench_function("garbling aes128 reverse", |b| {
         let circ = Circuit::load("../circuit/circuit_files/bristol/aes_128_reverse.txt").unwrap();
         let mut rng = AesRng::new();
-        let gen = HalfGateGenerator;
+        let mut gen = HalfGateGenerator::new();
 
         b.iter(|| {
-            let complete_gc = gen.garble(&mut rng, &circ).unwrap();
-            criterion::black_box(complete_gc);
+            let gc = gen.garble(&mut rng, &circ).unwrap();
+            criterion::black_box(gc);
         });
     });
 }
