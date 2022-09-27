@@ -3,8 +3,10 @@ pub mod half_gate_gen;
 pub use half_gate_gen::*;
 
 use super::errors::GeneratorError;
-use crate::gc::GarbledCircuit;
-use circuit::Circuit;
+use crate::{
+    gc::GarbledCircuit, GarbledCircuitLocal, InputValueLabel, InputZeroLabel, OutputDecodeInfo,
+};
+use circuit::{Circuit, CircuitInput};
 use rand::{CryptoRng, Rng};
 
 pub trait GCGenerator {
@@ -13,5 +15,14 @@ pub trait GCGenerator {
         &mut self,
         rng: &mut R,
         circ: &Circuit,
+        input_zero_labels: &[InputZeroLabel],
     ) -> Result<GarbledCircuit, GeneratorError>;
+
+    fn compose() {}
+
+    fn finalize(
+        &self,
+        gc_local: &GarbledCircuitLocal,
+        inputs: &Vec<CircuitInput>,
+    ) -> (Vec<InputValueLabel>, Vec<OutputDecodeInfo>);
 }
