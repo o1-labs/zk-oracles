@@ -3,23 +3,29 @@ pub mod half_gate_eval;
 pub use half_gate_eval::*;
 
 use super::errors::EvaluatorError;
-use crate::{GarbledCircuitTable, InputValueLabel, OutputDecodeInfo, OutputValueLabel};
+use crate::{GarbledCircuitTable, WireLabel, OutputDecodeInfo};
 use circuit::Circuit;
 
 pub trait GCEvaluator {
-    /// Evaluate a garbled circuit
+    /// Evaluate a garbled circuit.
     fn eval(
         &mut self,
         circ: &Circuit,
-        gc: &GarbledCircuitTable,
-        input_value_labels: &[InputValueLabel],
-    ) -> Result<Vec<OutputValueLabel>, EvaluatorError>;
+        gc_table: &GarbledCircuitTable,
+        input_value_labels: &[WireLabel],
+    ) -> Result<Vec<WireLabel>, EvaluatorError>;
 
-    fn compose() {}
+    /// Compose to evaluate a new circuit.
+    fn compose(&mut self,
+        circ: &Circuit,
+        gc_table: &GarbledCircuitTable,
+        output_value_labels: &[WireLabel],
+    ) -> Result<Vec<WireLabel>, EvaluatorError>;
 
+    /// Finalize GC evaluation.
     fn finalize(
         &self,
-        out_labels: &Vec<OutputValueLabel>,
+        out_labels: &Vec<WireLabel>,
         decode_info: &Vec<OutputDecodeInfo>,
     ) -> Vec<bool>;
 }

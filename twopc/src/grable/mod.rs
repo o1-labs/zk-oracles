@@ -14,7 +14,7 @@ mod tests {
     use crypto_core::{AesRng, Block};
     use rand::Rng;
 
-    use crate::{GCEvaluator, GCGenerator, HalfGateEvaluator, HalfGateGenerator, InputZeroLabel};
+    use crate::{GCEvaluator, GCGenerator, HalfGateEvaluator, HalfGateGenerator, WireLabel};
 
     #[test]
     fn gc_adder64_test() {
@@ -38,10 +38,10 @@ mod tests {
         let mut delta = rng.gen::<Block>();
         delta = delta.set_lsb();
 
-        let input_zero_labels: Vec<InputZeroLabel> = (0..circ.ninput_wires)
-            .map(|id| InputZeroLabel {
+        let input_zero_labels: Vec<WireLabel> = (0..circ.ninput_wires)
+            .map(|id| WireLabel {
                 id,
-                zero_label: rng.gen::<Block>(),
+                label: rng.gen::<Block>(),
             })
             .collect();
 
@@ -89,10 +89,10 @@ mod tests {
         let mut delta = rng.gen::<Block>();
         delta = delta.set_lsb();
 
-        let input_zero_labels: Vec<InputZeroLabel> = (0..circ.ninput_wires)
-            .map(|id| InputZeroLabel {
+        let input_zero_labels: Vec<WireLabel> = (0..circ.ninput_wires)
+            .map(|id| WireLabel {
                 id,
-                zero_label: rng.gen::<Block>(),
+                label: rng.gen::<Block>(),
             })
             .collect();
 

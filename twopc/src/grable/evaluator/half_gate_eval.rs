@@ -1,17 +1,21 @@
-use crate::{
-    EvaluatorError, GCEvaluator, GarbledCircuitTable, InputValueLabel, OutputDecodeInfo,
-    OutputValueLabel,
-};
+use crate::{EvaluatorError, GCEvaluator, GarbledCircuitTable, OutputDecodeInfo, WireLabel};
 use circuit::gate::Gate;
+use circuit::Circuit;
 use crypto_core::{block::SELECT_MASK, Block, AES_HASH};
 
 pub struct HalfGateEvaluator {
     counter: u128,
+    wire_size: usize,
+    offset: usize,
 }
 
 impl HalfGateEvaluator {
     pub fn new() -> Self {
-        Self { counter: 0 }
+        Self {
+            counter: 0,
+            wire_size: 0,
+            offset: 0,
+        }
     }
 
     #[inline]
@@ -42,15 +46,13 @@ impl HalfGateEvaluator {
     pub fn inv_gate(&self, x: Block, public_one_label: Block) -> Block {
         x ^ public_one_label
     }
-}
 
-impl GCEvaluator for HalfGateEvaluator {
-    fn eval(
+    pub(crate) fn eval_core(
         &mut self,
-        circ: &circuit::Circuit,
-        gc: &GarbledCircuitTable,
-        input_value_labels: &[InputValueLabel],
-    ) -> Result<Vec<OutputValueLabel>, EvaluatorError> {
+        circ: &Circuit,
+        gc_table: &GarbledCircuitTable,
+        input_value_labels: &[WireLabel],
+    ) -> Result<Vec<WireLabel>, EvaluatorError> {
         assert_eq!(
             input_value_labels.len(),
             circ.ninput_wires,
@@ -60,16 +62,16 @@ impl GCEvaluator for HalfGateEvaluator {
         let mut wire_labels: Vec<Option<Block>> = vec![None; circ.nwires];
 
         for label in input_value_labels {
-            wire_labels[label.id] = Some(label.label);
+            wire_labels[label.id - self.offset] = Some(label.label);
         }
 
-        let mut gid = self.counter as usize;
+        let mut gid = 0;
         for gate in circ.gates.iter() {
             match *gate {
                 Gate::Inv { lin_id, out_id, .. } => {
                     let x =
                         wire_labels[lin_id].ok_or(EvaluatorError::UninitializedLabel(lin_id))?;
-                    let z = self.inv_gate(x, gc.public_one_label);
+                    let z = self.inv_gate(x, gc_table.public_one_label);
 
                     wire_labels[out_id] = Some(z);
                 }
@@ -97,7 +99,7 @@ impl GCEvaluator for HalfGateEvaluator {
                         wire_labels[lin_id].ok_or(EvaluatorError::UninitializedLabel(lin_id))?;
                     let y =
                         wire_labels[rin_id].ok_or(EvaluatorError::UninitializedLabel(rin_id))?;
-                    let z = self.and_gate(x, y, gc.table[gid]);
+                    let z = self.and_gate(x, y, gc_table.table[gid]);
 
                     wire_labels[out_id] = Some(z);
                     gid += 1;
@@ -109,18 +111,62 @@ impl GCEvaluator for HalfGateEvaluator {
             .iter()
             .skip(circ.nwires - circ.noutput_wires)
             .zip(circ.nwires - circ.noutput_wires..circ.nwires)
-            .map(|(x, id)| OutputValueLabel {
-                id,
+            .map(|(x, id)| WireLabel {
+                id: id + self.offset,
                 label: x.unwrap(),
             })
             .collect();
 
         Ok(outputs)
     }
+}
+
+impl GCEvaluator for HalfGateEvaluator {
+    fn eval(
+        &mut self,
+        circ: &Circuit,
+        gc_table: &GarbledCircuitTable,
+        input_value_labels: &[WireLabel],
+    ) -> Result<Vec<WireLabel>, EvaluatorError> {
+        assert_eq!(
+            input_value_labels.len(),
+            circ.ninput_wires,
+            "Number of input wires is not consistent!"
+        );
+
+        self.wire_size += circ.nwires;
+
+        let output_labels = self.eval_core(&circ, &gc_table, &input_value_labels);
+
+        self.offset = self.wire_size - circ.noutput_wires;
+
+        output_labels
+    }
+
+    fn compose(
+        &mut self,
+        circ: &circuit::Circuit,
+        gc_table: &GarbledCircuitTable,
+        output_value_labels: &[WireLabel],
+    ) -> Result<Vec<WireLabel>, EvaluatorError> {
+        assert_eq!(
+            output_value_labels.len(),
+            circ.ninput_wires,
+            "Number of input wires is not consistent!"
+        );
+
+        self.wire_size += circ.nwires - circ.ninput_wires;
+
+        let output_labels = self.eval_core(&circ, &gc_table, &output_value_labels);
+
+        self.offset = self.wire_size - circ.noutput_wires;
+
+        output_labels
+    }
 
     fn finalize(
         &self,
-        out_labels: &Vec<OutputValueLabel>,
+        out_labels: &Vec<WireLabel>,
         decode_info: &Vec<OutputDecodeInfo>,
     ) -> Vec<bool> {
         out_labels

@@ -4,25 +4,33 @@ pub use half_gate_gen::*;
 
 use super::errors::GeneratorError;
 use crate::{
-    gc::GarbledCircuit, GarbledCircuitLocal, InputValueLabel, InputZeroLabel, OutputDecodeInfo,
+    gc::GarbledCircuit, GarbledCircuitLocal, GarbledCircuitTable, OutputDecodeInfo, WireLabel,
 };
 use circuit::{Circuit, CircuitInput};
+use crypto_core::Block;
 use rand::{CryptoRng, Rng};
 
 pub trait GCGenerator {
-    /// Generate a garbled circuit
+    /// Generate a garbled circuit.
     fn garble<R: Rng + CryptoRng>(
         &mut self,
         rng: &mut R,
         circ: &Circuit,
-        input_zero_labels: &[InputZeroLabel],
+        input_zero_labels: &[WireLabel],
     ) -> Result<GarbledCircuit, GeneratorError>;
 
-    fn compose() {}
+    /// Compose to generate a new circuit.
+    fn compose<R: Rng + CryptoRng>(
+        &mut self,
+        circ: &Circuit,
+        output_zero_labels: &mut Vec<WireLabel>,
+        public_one_label: Block,
+    ) -> Result<GarbledCircuitTable, GeneratorError>;
 
+    /// Finalize the GC generation.
     fn finalize(
         &self,
         gc_local: &GarbledCircuitLocal,
         inputs: &Vec<CircuitInput>,
-    ) -> (Vec<InputValueLabel>, Vec<OutputDecodeInfo>);
+    ) -> (Vec<WireLabel>, Vec<OutputDecodeInfo>);
 }

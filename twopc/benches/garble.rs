@@ -6,7 +6,7 @@ use rand::Rng;
 use std::time::Duration;
 use twopc::GCGenerator;
 use twopc::HalfGateGenerator;
-use twopc::InputZeroLabel;
+use twopc::WireLabel;
 
 fn bench_garble_adder64(c: &mut Criterion) {
     c.bench_function("garbling adder64", |b| {
@@ -16,10 +16,10 @@ fn bench_garble_adder64(c: &mut Criterion) {
         let mut delta = rng.gen::<Block>();
         delta = delta.set_lsb();
 
-        let input_zero_labels: Vec<InputZeroLabel> = (0..circ.ninput_wires)
-            .map(|id| InputZeroLabel {
+        let input_zero_labels: Vec<WireLabel> = (0..circ.ninput_wires)
+            .map(|id| WireLabel {
                 id,
-                zero_label: rng.gen::<Block>(),
+                label: rng.gen::<Block>(),
             })
             .collect();
 
@@ -40,10 +40,10 @@ fn bench_garble_aes_128_reverse(c: &mut Criterion) {
         let mut delta = rng.gen::<Block>();
         delta = delta.set_lsb();
 
-        let input_zero_labels: Vec<InputZeroLabel> = (0..circ.ninput_wires)
-            .map(|id| InputZeroLabel {
+        let input_zero_labels: Vec<WireLabel> = (0..circ.ninput_wires)
+            .map(|id| WireLabel {
                 id,
-                zero_label: rng.gen::<Block>(),
+                label: rng.gen::<Block>(),
             })
             .collect();
 

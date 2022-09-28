@@ -5,35 +5,11 @@ use circuit::CircuitInput;
 use crypto_core::block::Block;
 
 #[derive(Debug, Clone, Copy)]
-pub struct InputValueLabel {
-    /// Input wire id
+pub struct WireLabel {
+    /// wire id
     pub id: usize,
-    /// Input wire label according to the value
+    ///  wire label
     pub label: Block,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct OutputValueLabel {
-    /// Output wire id
-    pub id: usize,
-    /// Output wire label according to the value
-    pub label: Block,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct InputZeroLabel {
-    /// Input wire id
-    pub id: usize,
-    /// Input wire zero label
-    pub zero_label: Block,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct OutputZeroLabel {
-    /// Output wire id
-    pub id: usize,
-    /// Output wire zero label
-    pub zero_label: Block,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -63,14 +39,14 @@ impl GarbledCircuitTable {
 /// Informaiton used in garbled circuit, and only hold by the generator.
 #[derive(Debug, Clone)]
 pub struct GarbledCircuitLocal {
-    pub input_zero_labels: Vec<InputZeroLabel>,
-    pub output_zero_labels: Vec<OutputZeroLabel>,
+    pub input_zero_labels: Vec<WireLabel>,
+    pub output_zero_labels: Vec<WireLabel>,
 }
 
 impl GarbledCircuitLocal {
     pub fn new(
-        input_zero_labels: Vec<InputZeroLabel>,
-        output_zero_labels: Vec<OutputZeroLabel>,
+        input_zero_labels: Vec<WireLabel>,
+        output_zero_labels: Vec<WireLabel>,
     ) -> Self {
         Self {
             input_zero_labels,
@@ -78,7 +54,7 @@ impl GarbledCircuitLocal {
         }
     }
 
-    pub fn encode(&self, inputs: &Vec<CircuitInput>, delta: Block) -> Vec<InputValueLabel> {
+    pub fn encode(&self, inputs: &Vec<CircuitInput>, delta: Block) -> Vec<WireLabel> {
         assert_eq!(inputs.len(), self.input_zero_labels.len());
 
         self.input_zero_labels
@@ -86,14 +62,14 @@ impl GarbledCircuitLocal {
             .zip(inputs.iter())
             .map(|(x, y)| {
                 if y.value.lsb() ^ (x.id == y.id) {
-                    InputValueLabel {
+                    WireLabel {
                         id: x.id,
-                        label: x.zero_label,
+                        label: x.label,
                     }
                 } else if x.id == y.id {
-                    InputValueLabel {
+                    WireLabel {
                         id: x.id,
-                        label: x.zero_label ^ delta,
+                        label: x.label ^ delta,
                     }
                 } else {
                     panic!("Id not consistent!");
@@ -107,7 +83,7 @@ impl GarbledCircuitLocal {
             .iter()
             .map(|x| OutputDecodeInfo {
                 id: x.id,
-                decode_info: x.zero_label.lsb(),
+                decode_info: x.label.lsb(),
             })
             .collect()
     }

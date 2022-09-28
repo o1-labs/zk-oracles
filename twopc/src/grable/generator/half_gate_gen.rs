@@ -1,7 +1,6 @@
 use super::{GCGenerator, GeneratorError};
 use crate::{
-    GarbledCircuit, GarbledCircuitLocal, GarbledCircuitTable, InputValueLabel, InputZeroLabel,
-    OutputDecodeInfo, OutputZeroLabel,
+    GarbledCircuit, GarbledCircuitLocal, GarbledCircuitTable, OutputDecodeInfo, WireLabel,
 };
 use circuit::{
     gate::{Circuit, Gate},
@@ -16,11 +15,18 @@ use rand::{CryptoRng, Rng};
 pub struct HalfGateGenerator {
     counter: u128,
     delta: Block,
+    wire_size: usize,
+    offset: usize,
 }
 
 impl HalfGateGenerator {
     pub fn new(delta: Block) -> Self {
-        Self { counter: 0, delta }
+        Self {
+            counter: 0,
+            delta,
+            wire_size: 0,
+            offset: 0,
+        }
     }
 
     #[inline]
@@ -62,23 +68,18 @@ impl HalfGateGenerator {
     pub fn inv_gate(&self, x: [Block; 2], public_one_label: Block) -> [Block; 2] {
         self.xor_gate(x, [public_one_label ^ self.delta, public_one_label])
     }
-}
 
-impl GCGenerator for HalfGateGenerator {
-    fn garble<R: Rng + CryptoRng>(
+    pub fn gen_core(
         &mut self,
-        rng: &mut R,
         circ: &Circuit,
-        input_zero_labels: &[InputZeroLabel],
-    ) -> Result<GarbledCircuit, GeneratorError> {
+        input_zero_labels: &[WireLabel],
+        public_one_label: Block,
+    ) -> Result<(Vec<[Block; 2]>, Vec<WireLabel>), GeneratorError> {
         assert_eq!(
             input_zero_labels.len(),
             circ.ninput_wires,
             "Input size not consistent!"
         );
-
-        // Generate a random label for public 1.
-        let public_one_label = rng.gen::<Block>() ^ self.delta;
 
         let mut table: Vec<[Block; 2]> = Vec::with_capacity(circ.nand);
         let mut wire_labels: Vec<Option<[Block; 2]>> = vec![None; circ.nwires];
@@ -89,7 +90,7 @@ impl GCGenerator for HalfGateGenerator {
             .take(circ.ninput_wires)
             .zip(input_zero_labels.iter())
         {
-            let z = [label.zero_label, label.zero_label ^ self.delta];
+            let z = [label.label, label.label ^ self.delta];
             *wire = Some(z);
         }
 
@@ -133,30 +134,75 @@ impl GCGenerator for HalfGateGenerator {
             };
         }
 
-        let mut output_zero_labels: Vec<OutputZeroLabel> = Vec::with_capacity(circ.noutput_wires);
+        let mut output_zero_labels: Vec<WireLabel> = Vec::with_capacity(circ.noutput_wires);
 
         for (id, wire) in (circ.nwires - circ.noutput_wires..circ.nwires)
             .zip(wire_labels.iter().skip(circ.nwires - circ.noutput_wires))
         {
-            output_zero_labels.push(OutputZeroLabel {
-                id,
-                zero_label: wire.unwrap()[0],
+            output_zero_labels.push(WireLabel {
+                id: id + self.offset,
+                label: wire.unwrap()[0],
             });
         }
 
-        let gc_local = GarbledCircuitLocal::new(input_zero_labels.to_vec(), output_zero_labels);
+        Ok((table, output_zero_labels))
+    }
+}
 
-        // let output_decode_info = gc_local.decode_info();
+impl GCGenerator for HalfGateGenerator {
+    fn garble<R: Rng + CryptoRng>(
+        &mut self,
+        rng: &mut R,
+        circ: &Circuit,
+        input_zero_labels: &[WireLabel],
+    ) -> Result<GarbledCircuit, GeneratorError> {
+        // Generate a random label for public 1.
+        let public_one_label = rng.gen::<Block>() ^ self.delta;
+        self.wire_size += circ.nwires;
+
+        let (table, output_zero_labels) =
+            self.gen_core(&circ, &input_zero_labels, public_one_label)?;
+
+        self.offset = self.wire_size - circ.noutput_wires;
+
+        let gc_local = GarbledCircuitLocal::new(input_zero_labels.to_vec(), output_zero_labels);
         let gc_table = GarbledCircuitTable::new(table, public_one_label);
 
         Ok(GarbledCircuit::new(gc_table, gc_local))
+    }
+
+    fn compose<R: Rng + CryptoRng>(
+        &mut self,
+        circ: &Circuit,
+        output_zero_labels: &mut Vec<WireLabel>,
+        public_one_label: Block,
+    ) -> Result<GarbledCircuitTable, GeneratorError> {
+        assert_eq!(
+            output_zero_labels.len(),
+            circ.ninput_wires,
+            "Input and outputs sizes are not consistent!"
+        );
+        self.wire_size += circ.nwires - circ.ninput_wires;
+
+        let (table, output_labels) = self
+            .gen_core(&circ, &output_zero_labels, public_one_label)
+            .unwrap();
+
+        self.offset = self.wire_size - circ.noutput_wires;
+
+        output_zero_labels.clear();
+        *output_zero_labels = output_labels;
+
+        let gc_table = GarbledCircuitTable::new(table, public_one_label);
+
+        Ok(gc_table)
     }
 
     fn finalize(
         &self,
         gc_local: &GarbledCircuitLocal,
         inputs: &Vec<CircuitInput>,
-    ) -> (Vec<InputValueLabel>, Vec<OutputDecodeInfo>) {
+    ) -> (Vec<WireLabel>, Vec<OutputDecodeInfo>) {
         (gc_local.encode(inputs, self.delta), gc_local.decode_info())
     }
 }
