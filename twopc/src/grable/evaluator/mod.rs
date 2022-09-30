@@ -1,9 +1,11 @@
 pub mod half_gate_eval;
 
+use std::collections::HashMap;
+
 pub use half_gate_eval::*;
 
 use super::errors::EvaluatorError;
-use crate::{GarbledCircuitTable, WireLabel, OutputDecodeInfo};
+use crate::{GarbledCircuitTable, OutputDecodeInfo, WireLabel};
 use circuit::Circuit;
 
 pub trait GCEvaluator {
@@ -16,10 +18,12 @@ pub trait GCEvaluator {
     ) -> Result<Vec<WireLabel>, EvaluatorError>;
 
     /// Compose to evaluate a new circuit.
-    fn compose(&mut self,
+    fn compose(
+        &mut self,
         circ: &Circuit,
         gc_table: &GarbledCircuitTable,
         output_value_labels: &[WireLabel],
+        indicator: &Option<HashMap<usize, usize>>,
     ) -> Result<Vec<WireLabel>, EvaluatorError>;
 
     /// Finalize GC evaluation.

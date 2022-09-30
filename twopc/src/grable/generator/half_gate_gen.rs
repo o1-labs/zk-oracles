@@ -1,7 +1,5 @@
 use super::{GCGenerator, GeneratorError};
-use crate::{
-    GarbledCircuit, GarbledCircuitLocal, GarbledCircuitTable, OutputDecodeInfo, WireLabel,
-};
+use crate::{GarbledCircuit, GarbledCircuitTable, OutputDecodeInfo, WireLabel};
 use circuit::{
     gate::{Circuit, Gate},
     CircuitInput,
@@ -15,18 +13,11 @@ use rand::{CryptoRng, Rng};
 pub struct HalfGateGenerator {
     counter: u128,
     delta: Block,
-    wire_size: usize,
-    offset: usize,
 }
 
 impl HalfGateGenerator {
     pub fn new(delta: Block) -> Self {
-        Self {
-            counter: 0,
-            delta,
-            wire_size: 0,
-            offset: 0,
-        }
+        Self { counter: 0, delta }
     }
 
     #[inline]
@@ -140,7 +131,7 @@ impl HalfGateGenerator {
             .zip(wire_labels.iter().skip(circ.nwires - circ.noutput_wires))
         {
             output_zero_labels.push(WireLabel {
-                id: id + self.offset,
+                id,
                 label: wire.unwrap()[0],
             });
         }
@@ -158,51 +149,71 @@ impl GCGenerator for HalfGateGenerator {
     ) -> Result<GarbledCircuit, GeneratorError> {
         // Generate a random label for public 1.
         let public_one_label = rng.gen::<Block>() ^ self.delta;
-        self.wire_size += circ.nwires;
 
         let (table, output_zero_labels) =
             self.gen_core(&circ, &input_zero_labels, public_one_label)?;
 
-        self.offset = self.wire_size - circ.noutput_wires;
-
-        let gc_local = GarbledCircuitLocal::new(input_zero_labels.to_vec(), output_zero_labels);
         let gc_table = GarbledCircuitTable::new(table, public_one_label);
 
-        Ok(GarbledCircuit::new(gc_table, gc_local))
+        Ok(GarbledCircuit::new(gc_table, output_zero_labels))
     }
 
-    fn compose<R: Rng + CryptoRng>(
+    fn compose(
         &mut self,
         circ: &Circuit,
-        output_zero_labels: &mut Vec<WireLabel>,
+        output_zero_labels: &Vec<WireLabel>,
         public_one_label: Block,
-    ) -> Result<GarbledCircuitTable, GeneratorError> {
+    ) -> Result<GarbledCircuit, GeneratorError> {
         assert_eq!(
             output_zero_labels.len(),
             circ.ninput_wires,
             "Input and outputs sizes are not consistent!"
         );
-        self.wire_size += circ.nwires - circ.ninput_wires;
 
         let (table, output_labels) = self
             .gen_core(&circ, &output_zero_labels, public_one_label)
             .unwrap();
 
-        self.offset = self.wire_size - circ.noutput_wires;
-
-        output_zero_labels.clear();
-        *output_zero_labels = output_labels;
-
         let gc_table = GarbledCircuitTable::new(table, public_one_label);
 
-        Ok(gc_table)
+        Ok(GarbledCircuit::new(gc_table, output_labels))
     }
 
-    fn finalize(
-        &self,
-        gc_local: &GarbledCircuitLocal,
-        inputs: &Vec<CircuitInput>,
-    ) -> (Vec<WireLabel>, Vec<OutputDecodeInfo>) {
-        (gc_local.encode(inputs, self.delta), gc_local.decode_info())
+    fn finalize(&self, output_zero_labels: &Vec<WireLabel>) -> Vec<OutputDecodeInfo> {
+        decode_info(output_zero_labels)
     }
+}
+
+pub fn encode(labels: &Vec<WireLabel>, inputs: &Vec<CircuitInput>, delta: Block) -> Vec<WireLabel> {
+    assert_eq!(inputs.len(), labels.len());
+
+    labels
+        .iter()
+        .zip(inputs.iter())
+        .map(|(x, y)| {
+            if y.value.lsb() ^ (x.id == y.id) {
+                WireLabel {
+                    id: x.id,
+                    label: x.label,
+                }
+            } else if x.id == y.id {
+                WireLabel {
+                    id: x.id,
+                    label: x.label ^ delta,
+                }
+            } else {
+                panic!("Id not consistent!");
+            }
+        })
+        .collect()
+}
+
+pub fn decode_info(labels: &Vec<WireLabel>) -> Vec<OutputDecodeInfo> {
+    labels
+        .iter()
+        .map(|x| OutputDecodeInfo {
+            id: x.id,
+            decode_info: x.label.lsb(),
+        })
+        .collect()
 }

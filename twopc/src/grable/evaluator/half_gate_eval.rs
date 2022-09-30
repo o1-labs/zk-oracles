@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{EvaluatorError, GCEvaluator, GarbledCircuitTable, OutputDecodeInfo, WireLabel};
 use circuit::gate::Gate;
 use circuit::Circuit;
@@ -5,17 +7,11 @@ use crypto_core::{block::SELECT_MASK, Block, AES_HASH};
 
 pub struct HalfGateEvaluator {
     counter: u128,
-    wire_size: usize,
-    offset: usize,
 }
 
 impl HalfGateEvaluator {
     pub fn new() -> Self {
-        Self {
-            counter: 0,
-            wire_size: 0,
-            offset: 0,
-        }
+        Self { counter: 0 }
     }
 
     #[inline]
@@ -52,6 +48,7 @@ impl HalfGateEvaluator {
         circ: &Circuit,
         gc_table: &GarbledCircuitTable,
         input_value_labels: &[WireLabel],
+        indicator: &Option<HashMap<usize, usize>>,
     ) -> Result<Vec<WireLabel>, EvaluatorError> {
         assert_eq!(
             input_value_labels.len(),
@@ -61,9 +58,19 @@ impl HalfGateEvaluator {
 
         let mut wire_labels: Vec<Option<Block>> = vec![None; circ.nwires];
 
-        for label in input_value_labels {
-            wire_labels[label.id - self.offset] = Some(label.label);
-        }
+        match indicator {
+            None => {
+                for label in input_value_labels {
+                    wire_labels[label.id] = Some(label.label);
+                }
+            }
+
+            Some(idx) => {
+                for label in input_value_labels {
+                    wire_labels[*idx.get(&label.id).unwrap()] = Some(label.label);
+                }
+            }
+        };
 
         let mut gid = 0;
         for gate in circ.gates.iter() {
@@ -112,7 +119,7 @@ impl HalfGateEvaluator {
             .skip(circ.nwires - circ.noutput_wires)
             .zip(circ.nwires - circ.noutput_wires..circ.nwires)
             .map(|(x, id)| WireLabel {
-                id: id + self.offset,
+                id,
                 label: x.unwrap(),
             })
             .collect();
@@ -134,11 +141,7 @@ impl GCEvaluator for HalfGateEvaluator {
             "Number of input wires is not consistent!"
         );
 
-        self.wire_size += circ.nwires;
-
-        let output_labels = self.eval_core(&circ, &gc_table, &input_value_labels);
-
-        self.offset = self.wire_size - circ.noutput_wires;
+        let output_labels = self.eval_core(&circ, &gc_table, &input_value_labels, &None);
 
         output_labels
     }
@@ -148,6 +151,7 @@ impl GCEvaluator for HalfGateEvaluator {
         circ: &circuit::Circuit,
         gc_table: &GarbledCircuitTable,
         output_value_labels: &[WireLabel],
+        indicator: &Option<HashMap<usize, usize>>,
     ) -> Result<Vec<WireLabel>, EvaluatorError> {
         assert_eq!(
             output_value_labels.len(),
@@ -155,11 +159,7 @@ impl GCEvaluator for HalfGateEvaluator {
             "Number of input wires is not consistent!"
         );
 
-        self.wire_size += circ.nwires - circ.ninput_wires;
-
-        let output_labels = self.eval_core(&circ, &gc_table, &output_value_labels);
-
-        self.offset = self.wire_size - circ.noutput_wires;
+        let output_labels = self.eval_core(&circ, &gc_table, &output_value_labels, indicator);
 
         output_labels
     }
@@ -169,16 +169,21 @@ impl GCEvaluator for HalfGateEvaluator {
         out_labels: &Vec<WireLabel>,
         decode_info: &Vec<OutputDecodeInfo>,
     ) -> Vec<bool> {
-        out_labels
-            .iter()
-            .zip(decode_info.iter())
-            .map(|(x, y)| {
-                if x.id == y.id {
-                    x.label.lsb() ^ y.decode_info
-                } else {
-                    panic!("Id not consistent!");
-                }
-            })
-            .collect()
+        decode(out_labels, decode_info)
     }
+}
+
+pub fn decode(labels: &Vec<WireLabel>, decode_info: &Vec<OutputDecodeInfo>) -> Vec<bool> {
+    assert_eq!(labels.len(), decode_info.len(), "lenght is not consistent!");
+    labels
+        .iter()
+        .zip(decode_info.iter())
+        .map(|(x, y)| {
+            if x.id == y.id {
+                x.label.lsb() ^ y.decode_info
+            } else {
+                panic!("Id not consistent!");
+            }
+        })
+        .collect()
 }
