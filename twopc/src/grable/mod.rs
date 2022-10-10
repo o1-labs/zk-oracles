@@ -98,27 +98,9 @@ mod tests {
 
     #[test]
     fn gc_aes_test() {
-        // let mut input = vec![false; 128];
-
-        // let mut key = vec![false; 128];
-        // key[0] = true;
-        let msg = "10100001111101100010010110001100100001110111110101011111110011011000100101100100010010000100010100111000101111111100100100101100";
-
-        //let input = vec![false; 128];
-
-        let input: Vec<bool> = msg
-            .chars()
-            .map(|i| {
-                if (i as u8) == ('1' as u8) {
-                    true
-                } else {
-                    false
-                }
-            })
-            .collect();
         let key = vec![true; 128];
+        let input = vec![false; 128];
         let mut rng = AesRng::new();
-        //let circ = Circuit::load("../circuit/circuit_files/bristol/aes_128_reverse.txt").unwrap();
 
         let circ = Circuit::load("../circuit/circuit_files/bristol/aes_128.txt").unwrap();
 
@@ -140,9 +122,6 @@ mod tests {
 
         // Garbling the circuit.
         let gc = gen.garble(&mut rng, &circ, &input_zero_labels).unwrap();
-
-        // key.reverse();
-        // input.reverse();
 
         // Initiate the input from generator.
         let generator_inputs: Vec<CircuitInput> = input
@@ -179,28 +158,25 @@ mod tests {
         // The evaluator decode the output value labels into output bool vectors.
         let outputs = ev.finalize(&output_value_labels, &output_decode_info);
 
-        // outputs.reverse();
-
-        // assert_eq!(outputs.into_iter().map(|i| (i as u8).to_string()).collect::<String>(),
-        //     "00111010110101111000111001110010011011000001111011000000001010110111111010111111111010010010101100100011110110011110110000110100");
-
         assert_eq!(outputs.into_iter().map(|i| (i as u8).to_string()).collect::<String>(),
-            "0110010011001011110110010100010011101001110101011111011011100010000111001110101010111000111100110100111101110100111000111101");
+            "10100001111101100010010110001100100001110111110101011111110011011000100101100100010010000100010100111000101111111100100100101100");
     }
 
     #[test]
     fn gc_compose_adder64_test() {
         // Compose m1 + m2 + m3
 
-        // m1 = 2^64 - 1
+        // m1 = 2^64 -1
         let m1 = vec![true; 64];
         // m2 = 1
         let mut m2 = vec![false; 64];
         m2[0] = true;
-        // m3 = 0
-        let m3 = vec![false; 64];
-        // res = 0
-        let res = vec![false; 64];
+        // m3 = 1
+        let mut m3 = vec![false; 64];
+        m3[0] = true;
+        // res = 1
+        let mut res = vec![false; 64];
+        res[0] = true;
 
         let mut rng = AesRng::new();
         let circ = Circuit::load("../circuit/circuit_files/bristol/adder64.txt").unwrap();
@@ -325,11 +301,10 @@ mod tests {
 
     #[test]
     fn gc_compose_aes_test() {
-        // Compose AES(K,AES(K,m))
+        // Compose AES(AES(m,K),K)
 
-        let m = vec![false; 128];
-        //let key = vec![true; 128];
-        let key = vec![false; 128];
+        let m = vec![true; 128];
+        let key = vec![true; 128];
 
         let mut rng = AesRng::new();
         let circ = Circuit::load("../circuit/circuit_files/bristol/aes_128.txt").unwrap();
@@ -346,7 +321,7 @@ mod tests {
             })
             .collect();
 
-        // Map the output wires of the first AES circuit into the last 128 input wires of the second adder64 circuit.
+        // Map the output wires of the first AES circuit into the first 128 input wires of the second AES128 circuit.
         let mut map = HashMap::<usize, usize>::new();
         for i in circ.nwires - circ.noutput_wires..circ.nwires {
             map.insert(i, i - (circ.nwires - circ.noutput_wires));
@@ -358,17 +333,12 @@ mod tests {
 
         let indicator = Some(map);
 
-        //key.reverse();
-        //m.reverse();
-
         // Initiate half gate generator and evaluator.
         let mut gen = HalfGateGenerator::new(delta);
         let mut ev = HalfGateEvaluator::new();
 
         // Garbling the first AES circuit for c = AES(K,m).
         let gc = gen.garble(&mut rng, &circ, &input_zero_labels).unwrap();
-
-        //let inter_decode_info = gen.finalize(&gc.output_zero_labels);
 
         // Concatenate the output zero labels of c and input zero labels of key.
         let mut c_key_zero_labels = [
@@ -434,9 +404,6 @@ mod tests {
         let outputs = ev.finalize(&output_value_labels, &output_decode_info);
 
         assert_eq!(outputs.into_iter().map(|i| (i as u8).to_string()).collect::<String>(),
-            "11110111100101011011110101001010010100101110001010011110110101110001001111010011000100111111101000100000111010011000110110111100");
-
-        // assert_eq!(outputs.into_iter().map(|i| (i as u8).to_string()).collect::<String>(),
-        // "0110010011001011110110010100010011101001110101011111011011100010000111001110101010111000111100110100111101110100111000111101");
+            "01100000101111000110001000100100110111101000100000110100011001101010101010011011100011000111000000010111001000000111000011000011");
     }
 }
