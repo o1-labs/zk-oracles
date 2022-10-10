@@ -8,7 +8,10 @@ pub use co::*;
 pub use errors::{OTReceiverError, OTSenderError};
 
 use crypto_core::AbstractChannel;
+use crypto_core::Block;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use rand::{CryptoRng, Rng};
+use sha2::Digest;
 
 /// Sender of OT
 pub trait OtSender
@@ -42,4 +45,18 @@ where
         inputs: &[bool],
         rng: &mut R,
     ) -> Result<Vec<Self::Msg>, OTReceiverError>;
+}
+
+pub(crate) fn hash_to_block(
+    mut hasher: sha2::Sha256,
+    r: &RistrettoPoint,
+    m: &RistrettoPoint,
+) -> Block {
+    let r_str = r.compress().to_bytes();
+    let m_str = m.compress().to_bytes();
+    hasher.update([r_str, m_str].concat());
+
+    let mut res = [0u8; 16];
+    res.copy_from_slice(&hasher.finalize()[0..16]);
+    Block::from(res)
 }

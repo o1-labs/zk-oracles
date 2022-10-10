@@ -19,13 +19,13 @@ fn coot_test(netio: &mut NetChannel<TcpStream, TcpStream>) {
         let m1 = rand_block_vec(8);
         let m: Vec<(Block, Block)> = m0.into_iter().zip(m1.into_iter()).collect();
         let mut rng = AesRng::new();
-        let mut ot = ChouOrlandiSender::new();
+        let mut ot = ChouOrlandiSender;
         ot.send(netio, &m, &mut rng).unwrap();
         println!("send blocks: {:?}", m);
     } else {
         let select = rand_bool_vec(8);
         let mut rng = AesRng::new();
-        let mut ot = ChouOrlandiReceiver::new();
+        let mut ot = ChouOrlandiReceiver;
         let result = ot.receive(netio, &select, &mut rng).unwrap();
         println!("select bits: {:?}", select);
         println!("received blocks: {:?}", result);
