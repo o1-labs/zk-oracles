@@ -1,5 +1,6 @@
 pub mod block;
 pub mod channel;
+pub mod commitment;
 pub mod hash_aes;
 pub mod rand_aes;
 pub mod utils;
@@ -11,3 +12,4 @@ pub use crate::{
 };
 
 pub use channel::*;
+pub use commitment::*;
