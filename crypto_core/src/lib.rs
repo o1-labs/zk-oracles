@@ -1,11 +1,11 @@
 pub mod block;
 pub mod channel;
+pub mod cointoss;
 pub mod commitment;
 pub mod hash_aes;
+pub mod prg;
 pub mod rand_aes;
 pub mod utils;
-pub mod cointoss;
-pub mod prg;
 
 pub use crate::{
     block::Block,
@@ -14,6 +14,6 @@ pub use crate::{
 };
 
 pub use channel::*;
-pub use commitment::*;
 pub use cointoss::*;
+pub use commitment::*;
 pub use prg::*;

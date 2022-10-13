@@ -1,6 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use crypto_core::{AesRng, Block};
-use rand::Rng;
 use std::time::Duration;
 
 fn bench_clmul(c: &mut Criterion) {
@@ -18,7 +17,7 @@ fn bench_rand(c: &mut Criterion) {
     c.bench_function("Block::rand", |b| {
         let mut rng = AesRng::new();
         b.iter(|| {
-            let block = rng.gen::<Block>();
+            let block = rng.gen_block();
             criterion::black_box(block)
         });
     });

@@ -2,7 +2,7 @@
 
 use rand::{CryptoRng, Rng};
 
-use crate::{AbstractChannel, Block, Commitment};
+use crate::{AbstractChannel, Block, Commitment, Prg};
 
 pub struct CoinToss;
 
@@ -10,8 +10,8 @@ impl CoinToss {
     pub fn send<C: AbstractChannel, R: Rng + CryptoRng>(
         channel: &mut C,
         rng: &mut R,
-        //num: usize,
-    ) -> Block {
+        num: usize,
+    ) -> Vec<Block> {
         let seed_s = rng.gen::<Block>();
         let r_s = rng.gen::<[u8; 16]>();
 
@@ -40,15 +40,17 @@ impl CoinToss {
             channel.flush().unwrap();
 
             // Output seed
-            seed
+            Prg::gen_from_seed(seed, num)
         } else {
             panic!("Commitment check failed")
         }
     }
+
     pub fn receive<C: AbstractChannel, R: Rng + CryptoRng>(
         channel: &mut C,
         rng: &mut R,
-    ) -> Block {
+        num: usize,
+    ) -> Vec<Block> {
         // Receive the commitment from sender.
         let mut comm_s = [0u8; 32];
         channel.read_bytes(&mut comm_s).unwrap();
@@ -75,7 +77,7 @@ impl CoinToss {
 
         if Commitment::check(seed_s, r, &comm_s) {
             let seed = seed_r ^ Block::try_from_slice(seed_s).unwrap();
-            seed
+            Prg::gen_from_seed(seed, num)
         } else {
             panic!("Commitment check failed")
         }
@@ -84,24 +86,26 @@ impl CoinToss {
 
 #[cfg(test)]
 mod tests {
-    use crate::{local_channel_pair, AesRng, CoinToss, AbstractChannel};
+    use crate::{local_channel_pair, AbstractChannel, AesRng, CoinToss};
     use std::thread;
 
     #[test]
     fn cointoss_test() {
+        let num = 10;
+
         let (mut sender, mut receiver) = local_channel_pair();
 
         let handle = thread::spawn(move || {
             let mut rng = AesRng::new();
-            let res = CoinToss::send(&mut sender, &mut rng);
-            sender.write_block(&res).unwrap();
+            let res = CoinToss::send(&mut sender, &mut rng, num);
+            sender.write_blocks(&res, num).unwrap();
         });
 
         let mut rng = AesRng::new();
-        let res = CoinToss::receive(&mut receiver, &mut rng);
+        let res = CoinToss::receive(&mut receiver, &mut rng, num);
 
-        let res2 = receiver.read_block().unwrap();
-        assert_eq!(res,res2);
+        let res2 = receiver.read_blocks(num).unwrap();
+        assert_eq!(res, res2);
 
         handle.join().unwrap();
     }

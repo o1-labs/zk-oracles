@@ -60,6 +60,25 @@ pub trait AbstractChannel {
         self.write_bytes(blk.as_ref())
     }
 
+    /// Write a vector of blocks to the channel.
+    #[inline(always)]
+    fn write_blocks(&mut self, blks: &[Block], len: usize) -> Result<()> {
+        for i in 0..len {
+            self.write_block(&blks[i]).unwrap();
+        }
+        Ok(())
+    }
+
+    /// Read a vector of blocks from the channel.
+    #[inline(always)]
+    fn read_blocks(&mut self, len: usize) -> Result<Vec<Block>> {
+        let mut res = vec![Block::default(); len];
+        for i in 0..len {
+            res[i] = self.read_block().unwrap();
+        }
+        Ok(res)
+    }
+
     /// Read a `Block` from the channel.
     #[inline(always)]
     fn read_block(&mut self) -> Result<Block> {
