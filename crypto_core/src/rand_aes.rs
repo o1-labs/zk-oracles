@@ -158,8 +158,10 @@ mod tests {
     #[test]
     fn test_generate() {
         let mut rng = AesRng::new();
-        let a = rng.gen::<[Block; 8]>();
-        let b = rng.gen::<[Block; 8]>();
+        let a = rng.gen::<[Block; 1]>();
+        let b = rng.gen::<[Block; 1]>();
         assert_ne!(a, b);
+        println!("a: {:?}", a);
+        println!("b: {:?}", b);
     }
 }
