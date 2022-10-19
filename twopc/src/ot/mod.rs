@@ -3,9 +3,11 @@
 
 pub mod co;
 pub mod errors;
+pub mod kos;
 
 pub use co::*;
 pub use errors::{OTReceiverError, OTSenderError};
+pub use kos::*;
 
 use crypto_core::AbstractChannel;
 use crypto_core::Block;
