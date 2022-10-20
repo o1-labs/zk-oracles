@@ -70,6 +70,30 @@ pub fn and_inplace(a: &mut [u8], b: &[u8]) {
     }
 }
 
+#[inline]
+pub fn transpose(m: &[u8], nrows: usize, ncols: usize) -> Vec<u8> {
+    let mut m_ = vec![0u8; nrows * ncols / 8];
+    _transpose(
+        m_.as_mut_ptr() as *mut u8,
+        m.as_ptr(),
+        nrows as u64,
+        ncols as u64,
+    );
+    m_
+}
+
+#[inline(always)]
+fn _transpose(out: *mut u8, inp: *const u8, nrows: u64, ncols: u64) {
+    assert!(nrows >= 16);
+    assert_eq!(nrows % 8, 0);
+    assert_eq!(ncols % 8, 0);
+    unsafe { sse_trans(out, inp, nrows, ncols) }
+}
+
+#[link(name = "transpose")]
+extern "C" {
+    fn sse_trans(out: *mut u8, inp: *const u8, nrows: u64, ncols: u64);
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -99,5 +123,30 @@ mod tests {
         let v_ = (0..128).map(|_| 0xFF).collect::<Vec<u8>>();
         let v__ = and(&v, &v_);
         assert_eq!(v__, v);
+    }
+
+    fn _transpose(nrows: usize, ncols: usize) {
+        let m = (0..nrows * ncols / 8)
+            .map(|_| rand::random::<u8>())
+            .collect::<Vec<u8>>();
+        let m_ = m.clone();
+        let m = transpose(&m, nrows, ncols);
+        let m = transpose(&m, ncols, nrows);
+        assert_eq!(m, m_);
+    }
+
+    #[test]
+    fn test_transpose() {
+        _transpose(16, 16);
+        _transpose(24, 16);
+        _transpose(32, 16);
+        _transpose(40, 16);
+        _transpose(128, 16);
+        _transpose(128, 24);
+        _transpose(128, 128);
+        _transpose(128, 1 << 16);
+        _transpose(128, 1 << 18);
+        _transpose(32, 32);
+        _transpose(64, 32);
     }
 }
