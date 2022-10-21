@@ -1,6 +1,10 @@
 //! Useful utility functions.
 //! The code is derived from Swanky. https://github.com/GaloisInc/swanky.
 
+use rand::{CryptoRng, Rng};
+
+use crate::Block;
+
 /// Pack a bit slice into bytes.
 pub fn pack_bits(bits: &[bool]) -> Vec<u8> {
     let nbytes = (bits.len() as f64 / 8.0).ceil() as usize;
@@ -93,6 +97,18 @@ fn _transpose(out: *mut u8, inp: *const u8, nrows: u64, ncols: u64) {
 #[link(name = "transpose")]
 extern "C" {
     fn sse_trans(out: *mut u8, inp: *const u8, nrows: u64, ncols: u64);
+}
+
+#[inline]
+pub fn random_blocks<R: CryptoRng + Rng>(rng: &mut R, num: usize) -> Vec<Block> {
+    let mut dest = vec![0u8; num * 16];
+
+    rng.fill_bytes(&mut dest);
+    let res: Vec<Block> = dest
+        .chunks(16)
+        .map(|x| Block::try_from_slice(x).unwrap())
+        .collect();
+    res
 }
 #[cfg(test)]
 mod tests {

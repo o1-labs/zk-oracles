@@ -3,7 +3,7 @@ use std::net::TcpStream;
 use crypto_core::CommandLineOpt;
 use crypto_core::{AesRng, Block, NetChannel};
 use structopt::StructOpt;
-use twopc::ot::{ChouOrlandiReceiver, ChouOrlandiSender, OtReceiver, OtSender};
+use twopc::ot::{COReceiver, COSender, OtReceiver, OtSender};
 
 fn rand_block_vec(size: usize) -> Vec<Block> {
     (0..size).map(|_| rand::random::<Block>()).collect()
@@ -19,13 +19,13 @@ fn coot_test(netio: &mut NetChannel<TcpStream, TcpStream>) {
         let m1 = rand_block_vec(8);
         let m: Vec<(Block, Block)> = m0.into_iter().zip(m1.into_iter()).collect();
         let mut rng = AesRng::new();
-        let mut ot = ChouOrlandiSender;
+        let mut ot = COSender;
         ot.send(netio, &m, &mut rng).unwrap();
         println!("send blocks: {:?}", m);
     } else {
         let select = rand_bool_vec(8);
         let mut rng = AesRng::new();
-        let mut ot = ChouOrlandiReceiver;
+        let mut ot = COReceiver;
         let result = ot.receive(netio, &select, &mut rng).unwrap();
         println!("select bits: {:?}", select);
         println!("received blocks: {:?}", result);

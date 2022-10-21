@@ -67,14 +67,15 @@ impl AesRng {
     }
 
     #[inline]
-    pub fn gen_block(&mut self) -> Block {
-        self.0.core.gen_block()
+    pub fn random_block(&mut self) -> Block {
+        self.0.core.random_block()
     }
 
     #[inline]
-    pub fn gen_blocks(&mut self, num: usize) -> Vec<Block> {
-        self.0.core.gen_blocks(num)
+    pub fn random_blocks(&mut self, num: usize) -> Vec<Block> {
+        self.0.core.random_blocks(num)
     }
+
 }
 
 impl Default for AesRng {
@@ -93,7 +94,7 @@ pub struct AesRngCore {
 
 impl AesRngCore {
     #[inline]
-    pub fn gen_block(&mut self) -> Block {
+    pub fn random_block(&mut self) -> Block {
         let mut msg = GenericArray::from(self.state.to_be_bytes());
         self.aes.encrypt_block(&mut msg);
         self.state += 1;
@@ -101,7 +102,7 @@ impl AesRngCore {
     }
 
     #[inline]
-    pub fn gen_blocks(&mut self, num: usize) -> Vec<Block> {
+    pub fn random_blocks(&mut self, num: usize) -> Vec<Block> {
         let mut msg: Vec<GenericArray<u8, U16>> = (self.state..self.state + num as u128)
             .map(|x| GenericArray::from(x.to_be_bytes()))
             .collect();
@@ -186,8 +187,8 @@ mod tests {
     fn test_generate() {
         let mut rng = AesRng::new();
         let num = 10;
-        let a = rng.gen_blocks(num);
-        let b = rng.gen_blocks(num);
+        let a = rng.random_blocks(num);
+        let b = rng.random_blocks(num);
 
         let _ = a.iter().zip(b.iter()).map(|(x, y)| assert_ne!(x, y));
     }

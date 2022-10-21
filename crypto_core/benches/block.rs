@@ -17,7 +17,7 @@ fn bench_rand(c: &mut Criterion) {
     c.bench_function("Block::rand", |b| {
         let mut rng = AesRng::new();
         b.iter(|| {
-            let block = rng.gen_block();
+            let block = rng.random_block();
             criterion::black_box(block)
         });
     });

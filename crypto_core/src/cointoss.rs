@@ -1,8 +1,9 @@
 //! Implement cointossing for two parties to generate public random values.
 
 use rand::{CryptoRng, Rng};
+use rand_core::SeedableRng;
 
-use crate::{AbstractChannel, Block, Commitment, Prg};
+use crate::{AbstractChannel, AesRng, Block, Commitment};
 
 pub struct CoinToss;
 
@@ -40,7 +41,9 @@ impl CoinToss {
             channel.flush().unwrap();
 
             // Output seed
-            Prg::gen_from_seed(seed, num)
+            let mut prng = AesRng::from_seed(seed);
+            prng.random_blocks(num)
+
         } else {
             panic!("Commitment check failed")
         }
@@ -77,7 +80,8 @@ impl CoinToss {
 
         if Commitment::check(seed_s, r, &comm_s) {
             let seed = seed_r ^ Block::try_from_slice(seed_s).unwrap();
-            Prg::gen_from_seed(seed, num)
+            let mut prng = AesRng::from_seed(seed);
+            prng.random_blocks(num)
         } else {
             panic!("Commitment check failed")
         }

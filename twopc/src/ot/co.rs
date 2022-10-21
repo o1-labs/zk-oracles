@@ -14,10 +14,10 @@ use crate::hash_to_block;
 use crate::OtReceiver;
 use crate::OtSender;
 use curve25519_dalek::scalar::Scalar;
+#[derive(Copy, Clone)]
+pub struct COSender;
 
-pub struct ChouOrlandiSender;
-
-impl OtSender for ChouOrlandiSender {
+impl OtSender for COSender {
     type Msg = Block;
 
     fn send<C: AbstractChannel, R: CryptoRng + Rng>(
@@ -58,9 +58,10 @@ impl OtSender for ChouOrlandiSender {
     }
 }
 
-pub struct ChouOrlandiReceiver;
+#[derive(Copy, Clone)]
+pub struct COReceiver;
 
-impl OtReceiver for ChouOrlandiReceiver {
+impl OtReceiver for COReceiver {
     type Msg = Block;
 
     fn receive<C: AbstractChannel, R: CryptoRng + Rng>(
@@ -107,7 +108,7 @@ mod tests {
 
     use crypto_core::{local_channel_pair, AesRng, Block};
 
-    use crate::{ChouOrlandiReceiver, ChouOrlandiSender, OtReceiver, OtSender};
+    use crate::{COReceiver, COSender, OtReceiver, OtSender};
 
     fn rand_block_vec(size: usize) -> Vec<Block> {
         (0..size).map(|_| rand::random::<Block>()).collect()
@@ -128,14 +129,14 @@ mod tests {
         let (mut sender, mut receiver) = local_channel_pair();
 
         let handle = thread::spawn(move || {
-            let mut ot = ChouOrlandiSender;
+            let mut ot = COSender;
             let mut rng = AesRng::new();
             ot.send(&mut sender, &m_inside, &mut rng).unwrap();
             ot.send(&mut sender, &m_inside, &mut rng).unwrap();
         });
 
         let mut rng = AesRng::new();
-        let mut ot = ChouOrlandiReceiver;
+        let mut ot = COReceiver;
 
         let result = ot.receive(&mut receiver, &select, &mut rng).unwrap();
         for i in 0..128 {

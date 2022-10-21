@@ -49,6 +49,40 @@ where
     ) -> Result<Vec<Self::Msg>, OTReceiverError>;
 }
 
+/// Sender of COT
+pub trait CotSender
+where
+    Self: Sized,
+{
+    /// Message type.
+    type Msg: Sized + AsMut<[u8]>;
+
+    /// Send messages.
+    fn send<C: AbstractChannel, R: CryptoRng + Rng>(
+        &mut self,
+        channel: &mut C,
+        rng: &mut R,
+        m: usize,
+    ) -> Result<Vec<(Self::Msg, Self::Msg)>, OTSenderError>;
+}
+
+/// Receiver of COT
+pub trait CotReceiver
+where
+    Self: Sized,
+{
+    /// Message type.
+    type Msg: Sized + AsMut<[u8]>;
+
+    /// Receive messages.
+    fn receive<C: AbstractChannel, R: CryptoRng + Rng>(
+        &mut self,
+        channel: &mut C,
+        inputs: &[bool],
+        rng: &mut R,
+    ) -> Result<Vec<Self::Msg>, OTReceiverError>;
+}
+
 pub(crate) fn hash_to_block(
     mut hasher: sha2::Sha256,
     r: &RistrettoPoint,
