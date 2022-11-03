@@ -12,8 +12,9 @@
         - [Basics](./primitives/basics.md)
         - [Point and Permute](./primitives/pap.md)
         - [Free XOR](./primitives/freexor.md)
-        - [Row Reduction](./primitives/rr.md)
+        - [Row Reduction](./primitives/row_reduction.md)
         - [Half Gate](./primitives/halfgate.md)
+        - [Full Description](./primitives/fulldesc.md)
         - [Fixed-Key-AES Hashes](./primitives/fkaes.md)
 
     - [Oblivious Transfer](./primitives/ot.md)

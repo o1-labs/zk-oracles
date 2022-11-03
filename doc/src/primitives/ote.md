@@ -27,7 +27,7 @@ The KOS15 OT protocol to generate $\ell(\gg \lambda)$ OTs is described as follow
     3. The two parties calls the base OT with inputs $\Delta$ and $\{(\mathbf{k}_0^i,\mathbf{k}_1^i)\}_{i=1}^\lambda$. 
         - Note that the sender acts as the receiver in the base OT, and the receiver acts as the sender in the base OT.
 
-    4. The receiver obtains $\mathbf{k}^i_{\Delta_i}$ for $i\in[\lambda]$.
+    4. The sender obtains $\mathbf{k}^i_{\Delta_i}$ for $i\in[\lambda]$.
 
 - **Extend**
     1. The receiver takes as input the choice bits $x_1,...,x_\ell$, defines $\ell' = \ell + \lambda + s$, where $s$ is the statistic parameter, and we set $s = 40$ in zkOracles. Let $\mathbf{x} = x_1\|x_2\|...\|x_\ell\|\mathbf{x}'\in \bF_2^{\ell'}$, with $\mathbf{x}'\in\bF_2^{\ell'-\ell}$ uniformly chosen.

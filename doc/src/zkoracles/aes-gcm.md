@@ -90,7 +90,7 @@ The query execution protocol in zkOracles is essentially a two-party computation
 
 3. $\C$ and $\N$ compute $\sJ_0$ as follows:
     - If $\len(\sIV) = 96$, both party locally compute $\sJ_0 = \sIV\|0^{32}\|1$.
-    - If $\len(\sIV) \neq 96$, let $s = 128\cdot\lceil\len(\sIV)/128\rceil-\len(\sIV)$. $\C$ and $\S$ take as inputs $h_{\C,i}$ and $h_{\N,i}$ for $i\in[L]$ respectively, and run the $\pi^{\mathsf{GHASH}}_{\mathsf{2PC}}$ protocol according to the input $\sX = \sIV\|0^{s+64}\|[\len(\sIV)]_{64}$.
+    - If $\len(\sIV) \neq 96$, let $s = 128\cdot\lceil\len(\sIV)/128\rceil-\len(\sIV)$. $\C$ and $\N$ take as inputs $h_{\C,i}$ and $h_{\N,i}$ for $i\in[L]$ respectively, and run the $\pi^{\mathsf{GHASH}}_{\mathsf{2PC}}$ protocol according to the input $\sX = \sIV\|0^{s+64}\|[\len(\sIV)]_{64}$.
 
 4. $\C$ takes as inputs $\sK_\C$ and $\sP$, $\N$ takes as inputs $\sK_\N, 0^{128}$, and run the $\pi^{\mathsf{AES\text{-}TCR}}_{\mathsf{2PC}}$ protocol with public initial counter block $\inc(\sJ_0)$. $\C$ obtains the ciphertext $\sC$.
 
@@ -100,7 +100,7 @@ The query execution protocol in zkOracles is essentially a two-party computation
 
 7. $\C$ takes as inputs $\sK_\C$ and $\sS_\C$, $\N$ takes as inputs $\sK_\N$ and $\sS_\N$, and run the $\pi^{\mathsf{AES\text{-}TCR}}_{\mathsf{2PC}}$ protocol with public initial counter block $\sJ_0$. $\C$ obtains the ciphertext $\sT$.
 
-8. $\C$ outputs $(\sC,\sT)$, $\S$ outputs nothing.
+8. $\C$ outputs $(\sC,\sT)$, $\N$ outputs nothing.
 ### The $\pi^{\mathsf{PP}}_{\mathsf{2PC}}$ Protocol
 $\C$ samples uniformly random 128-bit strings $h_{\C,i}$ for $i\in[L]$, and securely computes the function $F_{\mathsf{PP}}((\sK_\C,h_{\C,1},...,h_{\C,L}),\sK_\N)$ with $\N$ as follows.
 

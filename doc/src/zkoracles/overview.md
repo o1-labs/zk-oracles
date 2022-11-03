@@ -48,7 +48,7 @@ After receiving the response $\mathsf{R}$ from the Server, the Client will prove
 
 The critical point here is that the protocol has to ensure that the query and response are derived from a TLS connection between the Client and Server. Therefore, we can not let the Client to establish a TLS connection with the Server alone, because he/she can encrypt arbitrary messages using the session key and claims that these messages come from a TLS connection with the Server.
 
-ZkOracles provides a protocol that the Notary and Client collaboratively play the role of "TLS Client" to establish a TLS connection with the Server. More specifically, the Notary and the Client run several secure two-party computation protocols to generate necessary information for a "TLS Client", which keep the secret from Client private against the Notary. 
+ZkOracles provides a protocol that the Notary and Client collaboratively play the role of "TLS Client" to establish a TLS connection with the Server. More specifically, the Notary and the Client run several secure two-party computation protocols to generate necessary information for a "TLS Client", which keep the secret of Client private against the Notary. 
 
 The following workflow is an overview of the zkOracle protocol.
 
