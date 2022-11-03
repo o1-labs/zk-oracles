@@ -165,4 +165,26 @@ mod tests {
         _transpose(32, 32);
         _transpose(64, 32);
     }
+
+    #[test]
+    fn test_bit_packing() {
+        let m = 256;
+        let mut v = vec![0u8; m / 8];
+        for x in v.iter_mut() {
+            *x = rand::random();
+        }
+
+        let bits = unpack_bits(&v, m);
+        let res = pack_bits(&bits);
+        assert_eq!(res, v);
+
+        let mut bits = vec![false; m];
+        for x in bits.iter_mut() {
+            *x = rand::random();
+        }
+
+        let bytes = pack_bits(&bits);
+        let res = unpack_bits(&bytes, m);
+        assert_eq!(res, bits);
+    }
 }
