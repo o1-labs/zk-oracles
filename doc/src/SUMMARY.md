@@ -7,6 +7,7 @@
         - [Chacha20-Poly1305](./zkoracles/chacha20.md)
     - [Commit](./zkoracles/commit.md)
     - [Proof Generation](./zkoracles/proofgen.md)
+    - [Notarization Format](./zkoracles/nota_format.md)
 - [Cryptographic Primitives](./primitives/overview.md)
     - [Garbled Circuit](./primitives/gc.md)
         - [Basics](./primitives/basics.md)
