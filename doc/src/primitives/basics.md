@@ -1,5 +1,5 @@
 # Basics
-Garbled circuit is a core building block of two-party computation. The invention of garbled circuit was credited to Andrew Yao, with plenty of optimizations the state-of-the-art protocols are extremely efficient. This subsection will first introduce the basic idea of garbled circuit.
+[Garbled circuit](https://en.wikipedia.org/wiki/Garbled_circuit) is a core building block of two-party computation. The invention of garbled circuit was credited to Andrew Yao, with plenty of optimizations the state-of-the-art protocols are extremely efficient. This subsection will first introduce the basic idea of garbled circuit.
 
 Garbled circuit involves two parties: the garbler and the evaluator. The garbler takes as input the circuit and the inputs, generates the garbled circuit and encoded inputs. The evaluator takes as input the garbled circuit and encoded inputs, evaluates the garbled circuit and decodes the result into outputs.
 
