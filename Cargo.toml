@@ -1,6 +1,7 @@
 [workspace]
 members = [
-    "crypto_core",
-    "circuit",
-    "twopc"
+  "crypto_core",
+  "circuit",
+  "twopc",
+  "notary",
 ]

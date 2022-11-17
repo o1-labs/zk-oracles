@@ -1,0 +1,14 @@
+[package]
+edition = "2021"
+name = "notary"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+mina-curves = {git = "https://github.com/o1-labs/proof-systems"}
+mina-hasher = {git = "https://github.com/o1-labs/proof-systems"}
+mina-poseidon = {git = "https://github.com/o1-labs/proof-systems"}
+mina-signer = {git = "https://github.com/o1-labs/proof-systems"}
+o1-utils = {git = "https://github.com/o1-labs/proof-systems"}
+rand = {version = "0.8.0", features = ["getrandom"]}
