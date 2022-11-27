@@ -74,22 +74,25 @@ impl<OT: OtReceiver<Msg = Block>> CotSender for KOSSender<OT> {
             rng.fill_bytes(&mut q);
 
             // if j == 1 {
-            //     println!("delta_1:{:?}", *b);
-            //     println!("t_delta_1:{:?}", q);
+            //     println!("sender delta_0:{:?}", *b);
+            //     println!("sender t_delta_0:{:?}", q);
             // }
 
             channel.read_bytes(&mut u).unwrap();
+            if j == 0 {
+                println!("sender u: {:?}", u);
+            }
             xor_inplace(&mut q, if *b { &u } else { &zero });
         }
         let q = &qs[0..cols / 8];
         // println!("q:{:?}", q);
         if delta_bool[0] {
-            println!("q:{:?}", q);
+            println!("sender q:{:?}", q);
         } else {
-            println!("q:{:?}", xor(&q, &x));
+            println!("sender q:{:?}", xor(&q, &x));
         }
-        println!("delta_0:{:?}", delta_bool[0]);
-        
+        println!("sender delta_0:{:?}", delta_bool[0]);
+
         // Transpose q
         transpose(&qs, rows, cols);
 
@@ -206,7 +209,7 @@ impl<OT: OtSender<Msg = Block> + Clone> CotReceiver for KOSReceiver<OT> {
             self.prgs0[i].fill_bytes(&mut t);
             self.prgs1[i].fill_bytes(&mut u);
 
-            // if i == 1 {
+            // if i == 0 {
             //     println!("t0:{:?}", t);
             //     println!("t1:{:?}", u);
             // }
@@ -215,11 +218,14 @@ impl<OT: OtSender<Msg = Block> + Clone> CotReceiver for KOSReceiver<OT> {
             xor_inplace(&mut u, &x);
 
             channel.write_bytes(&u).unwrap();
+            if i == 0 {
+                println!("receiver u': {:?}", u);
+            }
         }
         channel.flush().unwrap();
 
         let t = &ts[0..cols / 8];
-        println!("t0_0:{:?}", t);
+        println!("receiver t0_0:{:?}", t);
 
         transpose(&ts, rows, cols);
 
