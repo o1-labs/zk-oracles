@@ -8,7 +8,7 @@ use crate::{
     utils::{pack_bits, unpack_bits},
     Block,
 };
-use curve25519_dalek::ristretto::{RistrettoPoint, CompressedRistretto};
+use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use std::{
     cell::RefCell,
     io::{Read, Result, Write},
@@ -70,15 +70,15 @@ pub trait AbstractChannel {
 
     /// Write a Edwards point to the channel.
     #[inline(always)]
-    fn write_point(&mut self, point: &RistrettoPoint) -> Result<()>{
+    fn write_point(&mut self, point: &RistrettoPoint) -> Result<()> {
         self.write_bytes(point.compress().as_bytes())?;
         Ok(())
     }
 
     /// Read a Edwards point from the channel.
     #[inline(always)]
-    fn read_point(&mut self)-> Result<RistrettoPoint>{
-        let mut data = [0u8;32];
+    fn read_point(&mut self) -> Result<RistrettoPoint> {
+        let mut data = [0u8; 32];
         self.read_bytes(&mut data)?;
 
         let point = match CompressedRistretto::from_slice(&data).decompress() {
@@ -317,7 +317,6 @@ mod tests {
             sender.write_block(&send_block).unwrap();
             sender.write_point(&send_point).unwrap();
 
-
             sender.flush().unwrap();
         });
 
@@ -327,7 +326,6 @@ mod tests {
         let recv_bools = receiver.read_bools(10).unwrap();
         let recv_block = receiver.read_block().unwrap();
         let recv_point = receiver.read_point().unwrap();
-
 
         assert_eq!(send_bytes, recv_bytes);
         assert_eq!(send_bool, recv_bool);

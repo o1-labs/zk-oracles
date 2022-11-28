@@ -96,7 +96,6 @@ impl Block {
         aes.encrypt_block(&mut blk);
         Block::try_from_slice(blk.as_slice()).unwrap()
     }
-    
 }
 
 impl Default for Block {
