@@ -206,7 +206,7 @@ mod tests {
     }
 
     #[derive(Debug)]
-    struct Witness {
+    pub struct Witness {
         /// the share of client write key.
         _client_write_key_share: [u8; 16],
 
@@ -260,7 +260,7 @@ mod tests {
 
             // The apiSecret = "1041f46c61f053cc33eb781fb7a4c758", which is fake.
             // The api_signature = HMAC-SHA512(apiSecret, preSign),
-            // preSign is concatenated by the above items. Details are described in https://bittrex.github.io/api/v3
+            // preSign is concatenated by the following items. Details are described in https://bittrex.github.io/api/v3
             // api_timestamp = 1669536401556,
             // URL = https://api.bittrex.com/v3/balances/BCH,
             // HTTP method: GET,
@@ -418,6 +418,14 @@ mod tests {
         assert_eq!(res, true);
 
         // The proof system should prove the following statement.
-        // The public 
+        // Public information: notary_file, the pattern of querey and response.
+        // Private information: witness
+        // The relations are as follows:
+        // 1. The signature in notary_file is valid.
+        // 2. witness._client_write_key_share is committed in notary_file.raw_data.client_write_key_share_commitment under randomness witness._client_write_key_share_randomness.
+        // 3. witness._server_write_key_share is committed in notary_file.raw_data.server_write_key_share_commitment under randomness witness._server_write_key_share_randomness.
+        // 4. notary_file.encrypted_query is an encryption of query (reconstruced from witness) with AES128-GCM under key (witness._client_write_key_share xor notary_file.raw_data.client_write_key_notary_share) and nonce notary_file.encrypted_query_iv.
+        // 5. notary_file.encrypted_response is an encryption of response (reconstructed from response) with AES128-GCM under key (witness._server_write_key_share xor notary_file.raw_data.server_write_key_notary_share) and nonce notary_file.encrypted_response_iv.
+        // 6. query.api_signature is valid. (i.e., the HMAC-SHA512 computation is valid)
     }
 }
