@@ -1,11 +1,11 @@
 //！ Provides traits for oblivious transfer (OT) protocols.
 //! These traits focus on 1-out-of-2 OTs.
 
-pub mod errors;
 pub mod co;
+pub mod errors;
 
-pub use errors::{OTReceiverError, OTSenderError};
 pub use co::*;
+pub use errors::{OTReceiverError, OTSenderError};
 
 use crypto_core::AbstractChannel;
 use rand::{CryptoRng, Rng};

@@ -12,3 +12,9 @@ mina-poseidon = {git = "https://github.com/o1-labs/proof-systems"}
 mina-signer = {git = "https://github.com/o1-labs/proof-systems"}
 o1-utils = {git = "https://github.com/o1-labs/proof-systems"}
 rand = {version = "0.8.0", features = ["getrandom"]}
+serde_json = "1.0"
+serde = "1.0"
+aes-gcm = "0.10.1"
+aes = "0.8.2"
+crypto_core = {path = "../crypto_core"}
+rand_core = "0.5"
