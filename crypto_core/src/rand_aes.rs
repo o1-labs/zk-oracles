@@ -75,7 +75,6 @@ impl AesRng {
     pub fn random_blocks(&mut self, num: usize) -> Vec<Block> {
         self.0.core.random_blocks(num)
     }
-
 }
 
 impl Default for AesRng {

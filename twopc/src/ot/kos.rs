@@ -3,7 +3,7 @@
 use crate::{CotReceiver, CotSender};
 use crate::{OTReceiverError, OTSenderError};
 use crate::{OtReceiver, OtSender};
-use crypto_core::utils::{pack_bits, random_blocks, transpose, unpack_bits, xor, xor_inplace};
+use crypto_core::utils::{pack_bits, random_blocks, transpose, unpack_bits, xor_inplace};
 use crypto_core::{AbstractChannel, Block, AES_HASH};
 use crypto_core::{AesRng, CoinToss};
 use rand::{CryptoRng, Rng, RngCore, SeedableRng};
@@ -62,45 +62,18 @@ impl<OT: OtReceiver<Msg = Block>> CotSender for KOSSender<OT> {
         let delta: [u8; 16] = self.delta.into();
         let delta_bool = unpack_bits(&delta, rows);
 
-        // for test only
-        let mut x = vec![0u8; cols / 8];
-        channel.read_bytes(&mut x).unwrap();
-
         // Generate t_{Delta_i}
         // Receive u = t0 + t1 + x
         // Compute q = Delta_i * u + t_{Delta_i}
         for (j, (b, rng)) in delta_bool.iter().zip(self.prgs.iter_mut()).enumerate() {
             let mut q = &mut qs[j * cols / 8..(j + 1) * cols / 8];
             rng.fill_bytes(&mut q);
-
-            // if j == 1 {
-            //     println!("sender delta_0:{:?}", *b);
-            //     println!("sender t_delta_0:{:?}", q);
-            // }
-
             channel.read_bytes(&mut u).unwrap();
-            if j == 0 {
-                println!("sender u: {:?}", u);
-            }
             xor_inplace(&mut q, if *b { &u } else { &zero });
         }
-        let q = &qs[0..cols / 8];
-        // println!("q:{:?}", q);
-        if delta_bool[0] {
-            println!("sender q:{:?}", q);
-        } else {
-            println!("sender q:{:?}", xor(&q, &x));
-        }
-        println!("sender delta_0:{:?}", delta_bool[0]);
 
         // Transpose q
-        transpose(&qs, rows, cols);
-
-        let q = &qs[0..16];
-        let q_bits = unpack_bits(q, 128);
-
-        //println!("delta:{:?}", delta_bool);
-        //println!("q_bits:{:?}", q_bits);
+        let qs = transpose(&qs, rows, cols);
 
         // Check consistency
         let chi = CoinToss::send(channel, rng, cols);
@@ -121,8 +94,6 @@ impl<OT: OtReceiver<Msg = Block>> CotSender for KOSSender<OT> {
         let tmp = x_value.clmul(self.delta);
         check = (check.0 ^ tmp.0, check.1 ^ tmp.1);
 
-        assert_eq!(check, (t0, t1));
-
         if check != (t0, t1) {
             return Err(OTSenderError::ConsistencyCheckFailed);
         }
@@ -138,7 +109,7 @@ impl<OT: OtReceiver<Msg = Block>> CotSender for KOSSender<OT> {
                 AES_HASH.tccr_hash(Block::from(i as u128), q),
                 AES_HASH.tccr_hash(Block::from(i as u128), q ^ self.delta),
             );
-            v.push(tmp);
+            v.push((tmp.0, tmp.0 ^ self.delta));
             channel.write_block(&(tmp.0 ^ tmp.1 ^ self.delta)).unwrap();
         }
         channel.flush().unwrap();
@@ -199,41 +170,20 @@ impl<OT: OtSender<Msg = Block> + Clone> CotReceiver for KOSReceiver<OT> {
         let mut ts = vec![0u8; rows * cols / 8];
         let mut u = vec![0u8; cols / 8];
 
-        // for test only
-        channel.write_bytes(&x).unwrap();
-        channel.flush().unwrap();
-
         // compute u = t0+t1+x
         for i in 0..rows {
             let mut t = &mut ts[i * cols / 8..(i + 1) * cols / 8];
             self.prgs0[i].fill_bytes(&mut t);
             self.prgs1[i].fill_bytes(&mut u);
 
-            // if i == 0 {
-            //     println!("t0:{:?}", t);
-            //     println!("t1:{:?}", u);
-            // }
-
             xor_inplace(&mut u, &t);
             xor_inplace(&mut u, &x);
 
             channel.write_bytes(&u).unwrap();
-            if i == 0 {
-                println!("receiver u': {:?}", u);
-            }
         }
         channel.flush().unwrap();
 
-        let t = &ts[0..cols / 8];
-        println!("receiver t0_0:{:?}", t);
-
-        transpose(&ts, rows, cols);
-
-        let t = &ts[0..16];
-        let t_bits = unpack_bits(t, 128);
-
-        //println!("inputs 0: {:?}", inputs[0]);
-        //println!("t_bits:{:?}", t_bits);
+        let ts = transpose(&ts, rows, cols);
 
         let chi = CoinToss::receive(channel, rng, cols);
 
@@ -284,8 +234,8 @@ mod tests {
 
     #[test]
     fn local_kos_ote_test() {
-        let m = 256;
-        let select = rand_bool_vec(256);
+        let m = 8;
+        let selector = rand_bool_vec(m);
 
         let (mut sender, mut receiver) = local_channel_pair();
         let handle = thread::spawn(move || {
@@ -293,30 +243,18 @@ mod tests {
             let mut rng = AesRng::new();
             kosot.send_init(&mut sender, &mut rng).unwrap();
             let res = kosot.send(&mut sender, &mut rng, m).unwrap();
-            let _ = res.iter().map(|(x, y)| {
-                sender.write_block(&x).unwrap();
-                sender.write_block(y).unwrap();
-            });
             sender.flush().unwrap();
+            println!("sender ouputs: {:?}", res);
         });
 
         let mut rng = AesRng::new();
         let mut kosot = KOSReceiver::new(COSender);
         kosot.receive_init(&mut receiver, &mut rng).unwrap();
 
-        let res = kosot.receive(&mut receiver, &select, &mut rng).unwrap();
+        let res = kosot.receive(&mut receiver, &selector, &mut rng).unwrap();
 
-        for (b, x) in select.iter().zip(res) {
-            let v0 = receiver.read_block().unwrap();
-            let v1 = receiver.read_block().unwrap();
-
-            if *b {
-                assert_eq!(x, v1);
-            } else {
-                assert_eq!(x, v0);
-            }
-        }
-
+        println!("receive selector: {:?}", selector);
+        println!("receiver blocks: {:?}", res);
         handle.join().unwrap();
     }
 }

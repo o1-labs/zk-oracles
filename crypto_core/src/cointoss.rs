@@ -43,7 +43,6 @@ impl CoinToss {
             // Output seed
             let mut prng = AesRng::from_seed(seed);
             prng.random_blocks(num)
-
         } else {
             panic!("Commitment check failed")
         }
