@@ -1,44 +1,46 @@
 [package]
+authors = ["Xiang Xie <xiang@o1labs.org>"]
+edition = "2021"
+license = "MIT"
 name = "crypto_core"
 version = "0.1.0"
-authors = ["Xiang Xie <xiang@o1labs.org>"]
-license = "MIT"
-edition = "2021"
-
 
 [dependencies]
-rand = "0.7"
-rand_core = "0.5"
-serde = { version = "1", features = ["derive"]}
-once_cell = "1.12.1"
 aes = "0.8.1"
 cipher = "0.4.3"
-structopt = "0.3.20"
 curve25519-dalek = "3"
+once_cell = "1.12.1"
+rand = "0.7"
+rand_core = "0.5"
+serde = {version = "1", features = ["derive"]}
+sha2 = "0.10.0"
+structopt = "0.3.20"
 
+[build-dependencies]
+cc = "1.0"
 
 [features]
 
 [dev-dependencies]
+aes = "0.8.1"
 criterion = "0.3.6"
 hex = "0.4.3"
-aes = "0.8.1"
 
 [[bench]]
+harness = false
 name = "aes128"
-harness = false
 
 [[bench]]
+harness = false
 name = "block"
-harness = false
 
 [[bench]]
+harness = false
 name = "hash_aes"
-harness = false
 
 [[bench]]
-name = "rand_aes"
 harness = false
+name = "rand_aes"
 
 [[example]]
 name = "netio"

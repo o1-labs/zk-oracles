@@ -1,19 +1,33 @@
 use circuit::Circuit;
 use criterion::{criterion_group, criterion_main, Criterion};
 use crypto_core::AesRng;
+use crypto_core::Block;
+use rand::Rng;
 use std::time::Duration;
 use twopc::GCGenerator;
 use twopc::HalfGateGenerator;
+use twopc::WireLabel;
 
 fn bench_garble_adder64(c: &mut Criterion) {
     c.bench_function("garbling adder64", |b| {
         let circ = Circuit::load("../circuit/circuit_files/bristol/adder64.txt").unwrap();
         let mut rng = AesRng::new();
-        let gen = HalfGateGenerator;
+
+        let mut delta = rng.gen::<Block>();
+        delta = delta.set_lsb();
+
+        let input_zero_labels: Vec<WireLabel> = (0..circ.ninput_wires)
+            .map(|id| WireLabel {
+                id,
+                label: rng.gen::<Block>(),
+            })
+            .collect();
+
+        let mut gen = HalfGateGenerator::new(delta);
 
         b.iter(|| {
-            let complete_gc = gen.garble(&mut rng, &circ).unwrap();
-            criterion::black_box(complete_gc);
+            let gc = gen.garble(&mut rng, &circ, &input_zero_labels).unwrap();
+            criterion::black_box(gc);
         });
     });
 }
@@ -22,11 +36,22 @@ fn bench_garble_aes_128_reverse(c: &mut Criterion) {
     c.bench_function("garbling aes128 reverse", |b| {
         let circ = Circuit::load("../circuit/circuit_files/bristol/aes_128_reverse.txt").unwrap();
         let mut rng = AesRng::new();
-        let gen = HalfGateGenerator;
+
+        let mut delta = rng.gen::<Block>();
+        delta = delta.set_lsb();
+
+        let input_zero_labels: Vec<WireLabel> = (0..circ.ninput_wires)
+            .map(|id| WireLabel {
+                id,
+                label: rng.gen::<Block>(),
+            })
+            .collect();
+
+        let mut gen = HalfGateGenerator::new(delta);
 
         b.iter(|| {
-            let complete_gc = gen.garble(&mut rng, &circ).unwrap();
-            criterion::black_box(complete_gc);
+            let gc = gen.garble(&mut rng, &circ, &input_zero_labels).unwrap();
+            criterion::black_box(gc);
         });
     });
 }

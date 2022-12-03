@@ -5,6 +5,9 @@ pub enum OTSenderError {
 
     #[error("Sender IO Error")]
     IoError(std::io::Error),
+
+    #[error("Consistency check failed")]
+    ConsistencyCheckFailed,
 }
 
 #[derive(Debug, thiserror::Error)]
