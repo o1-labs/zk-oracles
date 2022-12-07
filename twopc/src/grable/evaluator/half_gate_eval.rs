@@ -5,6 +5,7 @@ use circuit::gate::Gate;
 use circuit::Circuit;
 use crypto_core::{block::SELECT_MASK, Block, AES_HASH};
 
+#[derive(Clone)]
 pub struct HalfGateEvaluator {
     counter: u128,
 }

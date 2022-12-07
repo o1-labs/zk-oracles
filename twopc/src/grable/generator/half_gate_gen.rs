@@ -10,6 +10,7 @@ use crypto_core::{
 };
 use rand::{CryptoRng, Rng};
 
+#[derive(Clone)]
 pub struct HalfGateGenerator {
     counter: u128,
     delta: Block,

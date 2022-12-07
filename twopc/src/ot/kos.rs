@@ -27,18 +27,34 @@ impl<OT: OtReceiver<Msg = Block>> KOSSender<OT> {
         }
     }
 
-    pub fn send_init<C: AbstractChannel, R: CryptoRng + Rng>(
+    pub fn send_init_with_delta<C: AbstractChannel, R: CryptoRng + Rng>(
         &mut self,
         channel: &mut C,
         rng: &mut R,
+        delta: Block,
     ) -> Result<(), OTReceiverError> {
-        let delta = rng.gen::<[u8; 16]>();
-        let inputs = unpack_bits(&delta, 128);
+        let inputs = unpack_bits(delta.as_ref(), 128);
         let k = self.ot.receive(channel, &inputs, rng)?;
         let prgs = k.iter().map(|x| AesRng::from_seed(*x)).collect();
         self.delta = Block::from(delta);
         self.prgs = prgs;
         Ok(())
+    }
+
+    pub fn send_init<C: AbstractChannel, R: CryptoRng + Rng>(
+        &mut self,
+        channel: &mut C,
+        rng: &mut R,
+    ) -> Result<(), OTReceiverError> {
+        let delta = rng.gen::<Block>();
+        self.send_init_with_delta(channel, rng, delta)
+        // let delta = rng.gen::<[u8; 16]>();
+        // let inputs = unpack_bits(&delta, 128);
+        // let k = self.ot.receive(channel, &inputs, rng)?;
+        // let prgs = k.iter().map(|x| AesRng::from_seed(*x)).collect();
+        // self.delta = Block::from(delta);
+        // self.prgs = prgs;
+        // Ok(())
     }
 }
 
@@ -225,7 +241,7 @@ impl<OT: OtSender<Msg = Block> + Clone> CotReceiver for KOSReceiver<OT> {
 #[cfg(test)]
 mod tests {
     use crate::{COReceiver, COSender, CotReceiver, CotSender, KOSReceiver, KOSSender};
-    use crypto_core::{local_channel_pair, AbstractChannel, AesRng};
+    use crypto_core::{local_channel_pair, AesRng};
     use std::thread;
 
     fn rand_bool_vec(size: usize) -> Vec<bool> {
@@ -243,8 +259,10 @@ mod tests {
             let mut rng = AesRng::new();
             kosot.send_init(&mut sender, &mut rng).unwrap();
             let res = kosot.send(&mut sender, &mut rng, m).unwrap();
-            sender.flush().unwrap();
             println!("sender ouputs: {:?}", res);
+
+            let res = kosot.send(&mut sender, &mut rng, m).unwrap();
+            println!("sender ouputs2: {:?}", res);
         });
 
         let mut rng = AesRng::new();
@@ -255,6 +273,10 @@ mod tests {
 
         println!("receive selector: {:?}", selector);
         println!("receiver blocks: {:?}", res);
+
+        let res = kosot.receive(&mut receiver, &selector, &mut rng).unwrap();
+        println!("receiver blocks2: {:?}", res);
+
         handle.join().unwrap();
     }
 }
