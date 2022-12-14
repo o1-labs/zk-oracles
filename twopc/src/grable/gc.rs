@@ -3,7 +3,7 @@
 
 use crypto_core::block::Block;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct WireLabel {
     /// wire id
     pub id: usize,
@@ -20,7 +20,7 @@ pub struct OutputDecodeInfo {
 }
 
 /// garbled tables and related info (independent of the inputs) sent to the evaluator.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GarbledCircuitTable {
     pub table: Vec<[Block; 2]>,
     pub public_one_label: Block,
@@ -35,7 +35,7 @@ impl GarbledCircuitTable {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GarbledCircuit {
     pub gc_table: GarbledCircuitTable,
     pub output_zero_labels: Vec<WireLabel>,

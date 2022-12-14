@@ -1,11 +1,13 @@
 use circuit::Circuit;
-use crypto_core::{AbstractChannel, AesRng, Block};
+use crypto_core::{AbstractChannel, Block};
 use rand::{CryptoRng, Rng};
 
 use crate::{
-    COReceiver, CotSender, GCGenerator, GarbledCircuit, HalfGateEvaluator, HalfGateGenerator,
-    KOSSender, WireLabel,
+    COReceiver, CotSender, GCGenerator, HalfGateEvaluator, HalfGateGenerator,
+    KOSSender, WireLabel, send_gc,
 };
+
+use std::io::Result;
 
 pub enum Party {
     ALICE,
@@ -75,21 +77,25 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                     .map(|(x, _)| x)
                     .collect::<Vec<Block>>();
 
-                let alice_input_zero_blks = vec![Block::default(); input_alice.len()];
-                let alice_input_zero_blks = alice_input_zero_blks
+                let alice_input_zero_blks = (0..input_alice.len())
                     .into_iter()
                     .map(|_| rng.gen::<Block>())
                     .collect::<Vec<Block>>();
+
                 let input_zero_blks = [alice_input_zero_blks, bob_input_zero_blks].concat();
 
                 let input_zero_labels = (0..circ.ninput_wires)
                     .zip(input_zero_blks)
                     .map(|(id, label)| WireLabel { id, label })
                     .collect::<Vec<WireLabel>>();
+
                 let gc_party = self.gc_party.clone();
                 match gc_party {
                     GCParty::GEN(mut gen) => {
+                        //encode(labels, inputs, delta)
+
                         let gc = gen.garble(rng, circ, &input_zero_labels).unwrap();
+                        send_gc(&mut self.channel, &gc).unwrap();
                     }
                     _ => {}
                 }
@@ -117,12 +123,4 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
     pub fn reveal() {}
 }
 
-use std::io::Result;
 
-fn send_gc<C: AbstractChannel>(channel: &mut C, gc: &GarbledCircuit) -> Result<()> {
-    Ok(())
-}
-
-fn receive_gc<C: AbstractChannel>(channel: &mut C, gc: &mut GarbledCircuit) -> Result<()> {
-    Ok(())
-}
