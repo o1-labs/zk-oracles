@@ -11,7 +11,7 @@ pub struct WireLabel {
     pub label: Block,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct OutputDecodeInfo {
     /// Output wire id
     pub id: usize,
