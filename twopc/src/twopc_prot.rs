@@ -34,7 +34,8 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
     pub fn new<R: Rng + CryptoRng>(channel: C, party: Party, rng: &mut R) -> Self {
         match party {
             Party::ALICE => {
-                let delta = rng.gen::<Block>();
+                let mut delta = rng.gen::<Block>();
+                delta = delta.set_lsb();
                 let gen = HalfGateGenerator::new(delta);
                 let gc_party = GCParty::GEN(gen);
                 Self {
@@ -110,12 +111,14 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                     self.delta,
                 );
                 send_wirelabels(&mut self.channel, &alice_wirelabels).unwrap();
+                self.channel.flush().unwrap();
 
                 let gc_party = self.gc_party.clone();
                 match gc_party {
                     GCParty::GEN(mut gen) => {
                         let gc = gen.garble(rng, circ, &input_zero_labels).unwrap();
                         send_gc_table(&mut self.channel, &gc.gc_table).unwrap();
+                        self.channel.flush().unwrap();
 
                         res = gc.output_zero_labels;
                         return Ok(res);
@@ -250,7 +253,6 @@ mod tests {
 
         let expected_res = vec![false; 64];
 
-
         let (sender, receiver) = local_channel_pair();
 
         let handle = thread::spawn(move || {
@@ -263,8 +265,7 @@ mod tests {
             let output_zero_labels = prot
                 .compute(Party::ALICE, &mut rng, &circ, &m1, &m2)
                 .unwrap();
-            let res = prot.finalize(Party::ALICE, &output_zero_labels).unwrap();
-            println!("A res:{:?}", res);
+            let _res = prot.finalize(Party::ALICE, &output_zero_labels).unwrap();
         });
 
         let m1 = vec![false; 64];
@@ -278,8 +279,7 @@ mod tests {
         let output_zero_labels = prot.compute(Party::BOB, &mut rng, &circ, &m1, &m2).unwrap();
 
         let res = prot.finalize(Party::BOB, &output_zero_labels).unwrap();
-        println!("B res:{:?}", res);
-        assert_eq!(res,expected_res);
+        assert_eq!(res, expected_res);
         handle.join().unwrap();
     }
 }
