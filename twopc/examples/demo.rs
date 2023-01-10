@@ -6,7 +6,6 @@ use structopt::StructOpt;
 use twopc::twopc_prot::*;
 
 fn demo(netio: NetChannel<TcpStream, TcpStream>) {
-    // let circ = Circuit::load("../../../circuit/circuit_files/bristol/aes_128.txt").unwrap();
     let circ = Circuit::load("circuit/circuit_files/bristol/aes_128.txt").unwrap();
 
     if netio.is_server() {
