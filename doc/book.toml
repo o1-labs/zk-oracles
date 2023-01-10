@@ -3,4 +3,8 @@ authors = ["Xiang Xie"]
 language = "en"
 multilingual = false
 src = "src"
-title = "zk-oracles"
+title = "zkOracles"
+
+[preprocessor.katex]
+command = "mdbook-katex"
+macros = "macros.txt"

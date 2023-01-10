@@ -1,0 +1,62 @@
+\C:{\small \mathcal{C}}
+\S:{\small \mathcal{S}}
+\N:{\small \mathcal{N}}
+
+
+\Fp:{\mathbb{F}_p}
+\Fq:{\mathbb{F}_q}
+\EC:{EC(\mathbb{F}_p,\mathbb{F}_q)}
+
+\mta:{\mathsf{MtA}}
+
+\innerprod: {\langle #1,#2 \rangle}
+
+\sK:{\small \mathsf{K}}
+\sC:{\small \mathsf{C}}
+\sIV:{\small \mathsf{IV}}
+\sA:{\small \mathsf{A}}
+\sM:{\small \mathsf{M}}
+\sT:{\small \mathsf{T}}
+\sP:{\small \mathsf{P}}
+\sX:{\small \mathsf{X}}
+\sY:{\small \mathsf{Y}}
+\sH:{\small \mathsf{H}}
+\sJ:{\small \mathsf{J}}
+\sS:{\small \mathsf{S}}
+\sQ:{\small \mathsf{Q}}
+\sR:{\small \mathsf{R}}
+\sI:{\small \mathsf{I}}
+
+\bF:{\small \mathbb{F}}
+\bG:{\small \mathbb{G}}
+
+\S:{\small S}
+\G:{\small G}
+\T:{\small T}
+\R:{\small R}
+
+\aes:{\small \mathsf{AES}}
+\inc:{\small \mathsf{inc}}
+\len:{\small \mathsf{len}}
+\msb:{\small \mathsf{MSB}}
+\lsb:{\small \mathsf{LSB}}
+\int:{\small \mathsf{int}}
+\icb:{\small \mathsf{ICB}}
+\ghash:{\small \mathsf{GHASH}}
+\tcr:{\small \mathsf{AES\textsf{-}TCR}}
+\aesgcm:{\small \mathsf{AES\textsf{-}GCM}}
+\com:{\small \mathsf{Com}}
+\sha:{\small\mathsf{SHA}256}
+\stmt:{\small \mathsf{Stmt}}
+
+\and:{\small \mathsf{AND}}
+\xor:{\small \mathsf{XOR}}
+\inv:{\small \mathsf{INV}}
+\enc:{\small \mathsf{Enc}}
+\gc:{\small \mathcal{GC}}
+\bit:{\{0,1\}}
+\zero:{\color{red}{0}}
+\one:{\color{blue}{1}}
+\gid:{\mathsf{gid}}
+\counter:{\mathsf{counter}}
+\prg:{\small \mathsf{PRG}}
