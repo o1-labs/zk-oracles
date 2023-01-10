@@ -43,7 +43,7 @@
 \int:{\small \mathsf{int}}
 \icb:{\small \mathsf{ICB}}
 \ghash:{\small \mathsf{GHASH}}
-\tcr:{\small \mathsf{AES\textsf{-}TCR}}
+\tcr:{\small \mathsf{AES\textsf{-}CTR}}
 \aesgcm:{\small \mathsf{AES\textsf{-}GCM}}
 \com:{\small \mathsf{Com}}
 \sha:{\small\mathsf{SHA}256}

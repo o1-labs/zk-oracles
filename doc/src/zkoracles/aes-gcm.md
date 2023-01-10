@@ -38,7 +38,7 @@ The $\ghash$ function defined below is used to compute the tag.
 3. The function outputs $\sX_1\cdot \sH^m\oplus\sX_2\cdot \sH^{m-1}\oplus...\oplus\sX_m\cdot \sH$.
 
 
-## AES-TCR Function
+## AES-CTR Function
 The $\tcr$ function defined below is used for encryption and decryption.
 1. $\tcr(\sK,\icb,\sX)$ takes as inputs a $128$-bit key $\sK$, an initial $128$-bit counter block $\icb$ and a bit string $\sX$.
 
@@ -92,13 +92,13 @@ The query execution protocol in zkOracles is essentially a two-party computation
     - If $\len(\sIV) = 96$, both party locally compute $\sJ_0 = \sIV\|0^{32}\|1$.
     - If $\len(\sIV) \neq 96$, let $s = 128\cdot\lceil\len(\sIV)/128\rceil-\len(\sIV)$. $\C$ and $\N$ take as inputs $h_{\C,i}$ and $h_{\N,i}$ for $i\in[L]$ respectively, and run the $\pi^{\mathsf{GHASH}}_{\mathsf{2PC}}$ protocol according to the input $\sX = \sIV\|0^{s+64}\|[\len(\sIV)]_{64}$.
 
-4. $\C$ takes as inputs $\sK_\C$ and $\sP$, $\N$ takes as inputs $\sK_\N, 0^{128}$, and run the $\pi^{\mathsf{AES\text{-}TCR}}_{\mathsf{2PC}}$ protocol with public initial counter block $\inc(\sJ_0)$. $\C$ obtains the ciphertext $\sC$.
+4. $\C$ takes as inputs $\sK_\C$ and $\sP$, $\N$ takes as inputs $\sK_\N, 0^{128}$, and run the $\pi^{\mathsf{AES\text{-}CTR}}_{\mathsf{2PC}}$ protocol with public initial counter block $\inc(\sJ_0)$. $\C$ obtains the ciphertext $\sC$.
 
 5. Let $u = 128\cdot \lceil \len(\sC)/128\rceil -\len(\sC)$, $v = 128\cdot \lceil \len(\sA)/128\rceil -\len(\sA)$.
 
 6. $\C$ and $\N$ take as inputs $h_{\C,i}$ and $h_{\N,i}$ for $i\in[L]$ respectively, and run the $\pi^{\mathsf{GHASH}}_{\mathsf{2PC}}$ protocol according to the input $\sX = \sA\|0^v\|\sC\|0^u\|[\len(\sA)]_{64}\|[\len(\sC)]_{64}$. $\C$ obtains the share $\sS_\C$, $\N$ obtains the share $\sS_\N$.
 
-7. $\C$ takes as inputs $\sK_\C$ and $\sS_\C$, $\N$ takes as inputs $\sK_\N$ and $\sS_\N$, and run the $\pi^{\mathsf{AES\text{-}TCR}}_{\mathsf{2PC}}$ protocol with public initial counter block $\sJ_0$. $\C$ obtains the ciphertext $\sT$.
+7. $\C$ takes as inputs $\sK_\C$ and $\sS_\C$, $\N$ takes as inputs $\sK_\N$ and $\sS_\N$, and run the $\pi^{\mathsf{AES\text{-}CTR}}_{\mathsf{2PC}}$ protocol with public initial counter block $\sJ_0$. $\C$ obtains the ciphertext $\sT$.
 
 8. $\C$ outputs $(\sC,\sT)$, $\N$ outputs nothing.
 ### The $\pi^{\mathsf{PP}}_{\mathsf{2PC}}$ Protocol

@@ -433,6 +433,47 @@ mod tests {
     }
 
     #[test]
+    fn twopc_aes_basic_test() {
+        // let input = vec![true; 128];
+        // let key = vec![false; 128];
+
+        let (sender, receiver) = local_channel_pair();
+
+        let handle = thread::spawn(move || {
+            let input = vec![true; 128];
+            let key = vec![false; 128]; // the value here is not important, could be anything.
+            let mut rng = AesRng::new();
+            let circ = Circuit::load("../circuit/circuit_files/bristol/aes_128.txt").unwrap();
+
+            let mut prot = TwopcProtocol::new(sender, Party::ALICE, &mut rng);
+            let output_zero_labels = prot
+                .compute(Party::ALICE, &mut rng, &circ, &input, &key)
+                .unwrap();
+            let _res = prot.finalize(Party::ALICE, &output_zero_labels).unwrap();
+        });
+
+        let input = vec![false; 128]; // the value here is not important, could be anything.
+        let key = vec![false; 128];
+
+        let mut rng = AesRng::new();
+        let circ = Circuit::load("../circuit/circuit_files/bristol/aes_128.txt").unwrap();
+
+        let mut prot = TwopcProtocol::new(receiver, Party::BOB, &mut rng);
+        let output_zero_labels = prot
+            .compute(Party::BOB, &mut rng, &circ, &input, &key)
+            .unwrap();
+
+        let res = prot.finalize(Party::BOB, &output_zero_labels).unwrap();
+        let res = res
+            .into_iter()
+            .map(|i| (i as u8).to_string())
+            .collect::<String>();
+        let expected_res = "00111111010110111000110011001001111010101000010101011010000010101111101001110011010001111101001000111110100011010110011001001110";
+        assert_eq!(expected_res, res);
+        handle.join().unwrap();
+    }
+
+    #[test]
     fn twopc_compose_test() {
         // Compose m1 + m2 + m3
 

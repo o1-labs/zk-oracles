@@ -243,11 +243,11 @@ mod tests {
             },
             Aes128Gcm, KeyInit, Nonce,
         };
-        use crypto_core::AesRng;
+        //use crypto_core::AesRng;
         use mina_curves::pasta::Fp;
         use mina_hasher::create_kimchi;
         use o1_utils::FieldHelpers;
-        use rand_core::RngCore;
+        //use rand_core::RngCore;
 
         // Initiate the query
         let query_json = Query{
@@ -337,9 +337,9 @@ mod tests {
             .unwrap();
 
         // generate client_write_key_share_randomness.
-        let mut rng = AesRng::new();
-        let mut rand_bytes = [0u8; 32];
-        rng.fill_bytes(&mut rand_bytes);
+        //let mut rng = AesRng::new();
+        let rand_bytes = [0u8; 32];
+        //rng.fill_bytes(&mut rand_bytes);
         let client_write_key_share_randomness = Fp::from_bytes(&rand_bytes).unwrap();
 
         // generate client_write_key_share_commitment using poseidon-based commitment.
@@ -351,9 +351,9 @@ mod tests {
         );
 
         // generate server_write_key_share_randomness.
-        let mut rng = AesRng::new();
-        let mut rand_bytes = [0u8; 32];
-        rng.fill_bytes(&mut rand_bytes);
+        //let mut rng = AesRng::new();
+        let rand_bytes = [0u8; 32];
+        //rng.fill_bytes(&mut rand_bytes);
         let server_write_key_share_randomness = Fp::from_bytes(&rand_bytes).unwrap();
 
         // generate server_write_key_share_commitment using poseidon-based commitment.

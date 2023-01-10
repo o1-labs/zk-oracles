@@ -1,5 +1,5 @@
 # Row Reduction
-With the Free-XOR optimization, the bottleneck of garbled circuit is to handle $\and$ gates. Row reduction aims to reduce the the number of ciphertexts of each garbled $\and$ gate. More specifically, it reduces $4$ ciphertexts into $3$. The optimization is given in the [NPS99](https://www.wisdom.weizmann.ac.il/~naor/PAPERS/nps.pdf) paper.
+With the Free-XOR optimization, the bottleneck of garbled circuit is to handle $\and$ gates. Row reduction aims to reduce the number of ciphertexts of each garbled $\and$ gate. More specifically, it reduces $4$ ciphertexts into $3$. The optimization is given in the [NPS99](https://www.wisdom.weizmann.ac.il/~naor/PAPERS/nps.pdf) paper.
 
 To be compatible with the Free-XOR optimization, the garbled $\and$ gates are of the following form (still use the example in the point-and-permute optimization).
 
