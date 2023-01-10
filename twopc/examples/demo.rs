@@ -18,7 +18,11 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
         let output_zero_labels = prot
             .compute(Party::ALICE, &mut rng, &circ, &input, &key)
             .unwrap();
-        let _res = prot.finalize(Party::ALICE, &output_zero_labels).unwrap();
+        let res = prot.finalize(Party::ALICE, &output_zero_labels).unwrap();
+        let res = res
+        .into_iter()
+        .map(|i| (i as u8).to_string())
+        .collect::<String>();
         let msg = input
             .into_iter()
             .map(|i| (i as u8).to_string())
@@ -27,7 +31,9 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
         println!("=============================");
         println!("Compute AES with 2PC Protocol\n");
         println!("The message for this party is: (you could change it by yourself)");
-        println!("{}", msg);
+        println!("{}\n", msg);
+        println!("The Ciphertext of AES(key,msg) is:");
+        println!("{}", res);
     } else {
         let input = vec![false; 128]; // the value here is not important, could be anything.
         let key = vec![false; 128];
