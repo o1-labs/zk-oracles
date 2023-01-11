@@ -1,5 +1,4 @@
 //! Define the struct of garbled circuit.
-//! Part of the code is derived form TLSNotary.
 
 use crypto_core::block::Block;
 

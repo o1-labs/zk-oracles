@@ -1,25 +1,15 @@
 //! Implementations of correlation-robust hash functions (and their variants)
 //! based on fixed-key AES.
 
-//! The code is derived from Swanky https://github.com/GaloisInc/swanky.
-
 use crate::block::Block;
 use aes::cipher::{generic_array::GenericArray, BlockEncrypt, KeyInit};
 use aes::Aes128;
 use core::arch::x86_64::*;
 use once_cell::sync::Lazy;
-/// AES-based correlation-robust hash function.
-///
-/// This hash function supports the correlation-robust variants given in
-/// <https://eprint.iacr.org/2019/074>.
+
 pub struct AesHash {
     aes: Aes128,
 }
-
-/// `AesHash` with a fixed key.
-//pub const AES_HASH: AesHash = AesHash {
-//    aes: FIXED_KEY_AES128,
-//};
 
 pub static AES_HASH: Lazy<AesHash> = Lazy::new(|| {
     let key = GenericArray::from([0u8; 16]);

@@ -1,3 +1,5 @@
+//! Implement the half-gate generator
+
 use super::{GCGenerator, GeneratorError};
 use crate::{GarbledCircuit, GarbledCircuitTable, OutputDecodeInfo, WireLabel};
 use circuit::{

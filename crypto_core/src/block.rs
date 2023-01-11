@@ -87,15 +87,6 @@ impl Block {
         Some(Block::from(bytes))
     }
 
-    #[inline]
-    pub fn hash_point(tweak: u128, point: &RistrettoPoint) -> Self {
-        let k = point.compress();
-        let aes = Aes256::new(&GenericArray::from_slice(k.as_bytes()));
-        let blk: [u8; 16] = unsafe { std::mem::transmute(tweak) };
-        let mut blk = GenericArray::from(blk);
-        aes.encrypt_block(&mut blk);
-        Block::try_from_slice(blk.as_slice()).unwrap()
-    }
 }
 
 impl Default for Block {
@@ -226,8 +217,6 @@ impl From<u128> for Block {
     #[inline]
     fn from(m: u128) -> Self {
         unsafe { std::mem::transmute(m) }
-        // XXX: the below doesn't work due to pointer-alignment issues.
-        // unsafe { *(&m as *const _ as *const Block) }
     }
 }
 
@@ -256,8 +245,6 @@ impl From<[u8; 16]> for Block {
     #[inline]
     fn from(m: [u8; 16]) -> Self {
         unsafe { std::mem::transmute(m) }
-        // XXX: the below doesn't work due to pointer-alignment issues.
-        // unsafe { *(&m as *const _ as *const Block) }
     }
 }
 
@@ -279,38 +266,6 @@ impl Hash for Block {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let v: u128 = (*self).into();
         v.hash(state);
-    }
-}
-
-use aes::Aes256;
-use cipher::{generic_array::GenericArray, BlockEncrypt, KeyInit};
-use curve25519_dalek::ristretto::RistrettoPoint;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-#[derive(Serialize, Deserialize)]
-struct Helperb {
-    pub block: u128,
-}
-
-impl Serialize for Block {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let helper = Helperb {
-            block: <u128>::from(*self),
-        };
-        helper.serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for Block {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let helper = Helperb::deserialize(deserializer)?;
-        Ok(Block::from(helper.block.to_le_bytes()))
     }
 }
 

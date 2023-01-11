@@ -1,5 +1,4 @@
 //! Fixed-key AES random number generator.
-//! The code is derived from Swanky. https://github.com/GaloisInc/swanky.
 
 use crate::Block;
 use aes::cipher::KeyInit;

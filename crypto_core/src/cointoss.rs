@@ -5,9 +5,11 @@ use rand_core::SeedableRng;
 
 use crate::{AbstractChannel, AesRng, Block, Commitment};
 
+/// The structure of CoinToss.
 pub struct CoinToss;
 
 impl CoinToss {
+    /// The sender of CoinToss protocol
     pub fn send<C: AbstractChannel, R: Rng + CryptoRng>(
         channel: &mut C,
         rng: &mut R,
@@ -48,6 +50,7 @@ impl CoinToss {
         }
     }
 
+    /// The receiver of CoinToss.
     pub fn receive<C: AbstractChannel, R: Rng + CryptoRng>(
         channel: &mut C,
         rng: &mut R,

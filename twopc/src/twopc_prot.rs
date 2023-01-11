@@ -1,3 +1,4 @@
+//! Implement the 2PC protocol with garbled circuit and oblivious transfer.
 use circuit::Circuit;
 use crypto_core::{AbstractChannel, Block};
 use rand::{CryptoRng, Rng};

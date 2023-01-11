@@ -1,3 +1,5 @@
+//! Implement the half-gate evaluator
+
 use std::collections::HashMap;
 
 use crate::{EvaluatorError, GCEvaluator, GarbledCircuitTable, OutputDecodeInfo, WireLabel};

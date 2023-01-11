@@ -1,5 +1,4 @@
 //! Define the structure of gates and circuits.
-//! Part of the code is derived from TLSNotary. https://github.com/tlsnotary/tlsn
 
 use crate::errors::CircuitEvalError;
 use crypto_core::block::Block;

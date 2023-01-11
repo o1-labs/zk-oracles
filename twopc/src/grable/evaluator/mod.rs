@@ -1,3 +1,5 @@
+//! Define the trait of GC evaluator.
+
 pub mod half_gate_eval;
 
 use std::collections::HashMap;
