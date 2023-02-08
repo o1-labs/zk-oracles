@@ -297,7 +297,7 @@ mod tests {
         let mut key = vec![Block::from(0u128); 128];
         let mut pt = vec![Block::from(0u128); 128];
 
-        let inputs = [key, pt].concat();
+        let inputs = [pt, key].concat();
 
         let inputs: Vec<CircuitInput> = inputs
             .into_iter()
@@ -308,11 +308,11 @@ mod tests {
         assert_eq!(output.into_iter().map(|i| (i.lsb() as u8).to_string()).collect::<String>(),
             "01100110111010010100101111010100111011111000101000101100001110111000100001001100111110100101100111001010001101000010101100101110");
 
-        // key = 0^128, pt = 1^128
-        key = vec![Block::from(0u128); 128];
-        pt = vec![Block::from(1u128); 128];
+        // key = 1^128, pt = 0^128
+        pt = vec![Block::from(0u128); 128];
+        key = vec![Block::from(1u128); 128];
 
-        let inputs = [key, pt].concat();
+        let inputs = [pt, key].concat();
         let inputs: Vec<CircuitInput> = inputs
             .into_iter()
             .enumerate()
@@ -323,11 +323,11 @@ mod tests {
         assert_eq!(output.into_iter().map(|i| (i.lsb() as u8).to_string()).collect::<String>(),
             "10100001111101100010010110001100100001110111110101011111110011011000100101100100010010000100010100111000101111111100100100101100");
 
-        // key = 0^128, pt = 000000010^120
-        key = vec![Block::from(0u128); 128];
+        // pt = 0^128, key = 000000010^120
         pt = vec![Block::from(0u128); 128];
-        pt[7] = Block::from(1u128);
-        let inputs = [key, pt].concat();
+        key = vec![Block::from(0u128); 128];
+        key[7] = Block::from(1u128);
+        let inputs = [pt, key].concat();
         let inputs: Vec<CircuitInput> = inputs
             .into_iter()
             .enumerate()
@@ -338,13 +338,13 @@ mod tests {
         assert_eq!(output.into_iter().map(|i| (i.lsb() as u8).to_string()).collect::<String>(),
             "11011100000011101101100001011101111110010110000100011010101110110111001001001001110011011101000101101000110001010100011001111110");
 
-        // key = 0^128, pt = 0^120(11111111)
-        key = vec![Block::from(0u128); 128];
+        // pt = 0^128, key = 0^120(11111111)
         pt = vec![Block::from(0u128); 128];
+        key = vec![Block::from(0u128); 128];
         for i in 0..8 {
-            pt[127 - i] = Block::from(1u128);
+            key[127 - i] = Block::from(1u128);
         }
-        let inputs = [key, pt].concat();
+        let inputs = [pt, key].concat();
         let inputs: Vec<CircuitInput> = inputs
             .into_iter()
             .enumerate()
@@ -354,6 +354,31 @@ mod tests {
         output = circ.eval(inputs).unwrap();
         assert_eq!(output.into_iter().map(|i| (i.lsb() as u8).to_string()).collect::<String>(),
             "11010101110010011000110001001000001001010101111101111000110011000100011111100001010010011110010101011100111111000011111111111101");
+
+        let msg = "01100000101111000110001000100100110111101000100000110100011001101010101010011011100011000111000000010111001000000111000011000011";
+
+        let key = vec![Block::from(1u128); 128];
+        let pt: Vec<Block> = msg
+            .chars()
+            .map(|i| {
+                if (i as u8) == ('1' as u8) {
+                    Block::from(1u128)
+                } else {
+                    Block::from(0u128)
+                }
+            })
+            .collect();
+
+        let inputs = [pt, key].concat();
+        let inputs: Vec<CircuitInput> = inputs
+            .into_iter()
+            .enumerate()
+            .map(|(id, value)| CircuitInput { id, value })
+            .collect();
+
+        output = circ.eval(inputs).unwrap();
+        assert_eq!(output.into_iter().map(|i| (i.lsb() as u8).to_string()).collect::<String>(),
+                "10101101110001001111111101101011010011101000000000000011100100000010110001101010001001100111000000000010001111110011010110010111");
     }
 
     #[test]

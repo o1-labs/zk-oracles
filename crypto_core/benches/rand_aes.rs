@@ -13,9 +13,16 @@ fn bench_aes_rand(c: &mut Criterion) {
     });
 }
 
+fn bench_rand_block(c: &mut Criterion) {
+    c.bench_function("random_blocks", |b| {
+        let mut rng = AesRng::new();
+        b.iter(|| rng.random_blocks(16 * 1024));
+    });
+}
+
 criterion_group! {
     name = aesrng;
     config = Criterion::default().warm_up_time(Duration::from_millis(100));
-    targets = bench_aes_rand
+    targets = bench_aes_rand,bench_rand_block
 }
 criterion_main!(aesrng);

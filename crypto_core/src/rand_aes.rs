@@ -65,6 +65,16 @@ impl AesRng {
         let seed = self.gen::<Block>();
         AesRng::from_seed(seed)
     }
+
+    #[inline]
+    pub fn random_block(&mut self) -> Block {
+        self.0.core.random_block()
+    }
+
+    #[inline]
+    pub fn random_blocks(&mut self, num: usize) -> Vec<Block> {
+        self.0.core.random_blocks(num)
+    }
 }
 
 impl Default for AesRng {
@@ -81,6 +91,30 @@ pub struct AesRngCore {
     state: u128,
 }
 
+impl AesRngCore {
+    #[inline]
+    pub fn random_block(&mut self) -> Block {
+        let mut msg = GenericArray::from(self.state.to_be_bytes());
+        self.aes.encrypt_block(&mut msg);
+        self.state += 1;
+        Block::try_from_slice(msg.as_slice()).unwrap()
+    }
+
+    #[inline]
+    pub fn random_blocks(&mut self, num: usize) -> Vec<Block> {
+        let mut msg: Vec<GenericArray<u8, U16>> = (self.state..self.state + num as u128)
+            .map(|x| GenericArray::from(x.to_be_bytes()))
+            .collect();
+
+        self.aes.encrypt_blocks(&mut msg);
+
+        self.state += num as u128;
+
+        msg.iter()
+            .map(|x| Block::try_from_slice(x.as_slice()).unwrap())
+            .collect()
+    }
+}
 impl std::fmt::Debug for AesRngCore {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "AesRngCore {{}}")
@@ -116,13 +150,8 @@ impl BlockRngCore for AesRngCore {
         ms[7] = GenericArray::from(self.state.to_be_bytes());
         self.state += 1;
         self.aes.encrypt_blocks(&mut ms);
-        let c: Vec<Block> = ms
-            .into_iter()
-            .map(|m| Block::try_from_slice(m.as_slice()).unwrap())
-            .collect();
-        unsafe {
-            *results = *(&c as *const _ as *const [u32; 32]);
-        }
+
+        *results = unsafe { std::mem::transmute(ms) };
     }
 }
 
@@ -153,13 +182,13 @@ impl From<AesRngCore> for AesRng {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::Rng;
-
     #[test]
     fn test_generate() {
         let mut rng = AesRng::new();
-        let a = rng.gen::<[Block; 8]>();
-        let b = rng.gen::<[Block; 8]>();
-        assert_ne!(a, b);
+        let num = 10;
+        let a = rng.random_blocks(num);
+        let b = rng.random_blocks(num);
+
+        let _ = a.iter().zip(b.iter()).map(|(x, y)| assert_ne!(x, y));
     }
 }
