@@ -15,7 +15,10 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
         let mut rng = AesRng::new();
         let mut prot =
             TwopcProtocol::<NetChannel<TcpStream, TcpStream>>::new(netio, Party::Garbler, &mut rng);
-        let output_zero_labels = prot.compute(&mut rng, &circ, &input, &key).unwrap();
+        let data_to_mask = None;
+        let (output_zero_labels, _masked_data) = prot
+            .compute(&mut rng, &circ, &input, &key, &data_to_mask)
+            .unwrap();
         let res = prot.finalize(&output_zero_labels).unwrap();
         let res = res
             .into_iter()
@@ -38,7 +41,8 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
 
         let mut rng = AesRng::new();
         let mut prot = TwopcProtocol::new(netio, Party::Evaluator, &mut rng);
-        let output_zero_labels = prot.compute(&mut rng, &circ, &input, &key).unwrap();
+        let (output_zero_labels, _masked_data) =
+            prot.compute(&mut rng, &circ, &input, &key, &None).unwrap();
         let res = prot.finalize(&output_zero_labels).unwrap();
         let res = res
             .into_iter()

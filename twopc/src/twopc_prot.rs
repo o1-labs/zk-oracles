@@ -69,7 +69,8 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
         circ: &Circuit,
         input_garbler: &[bool],
         input_evaluator: &[bool],
-    ) -> Result<Vec<WireLabel>> {
+        data_to_mask: &Option<Vec<Vec<Block>>>,
+    ) -> Result<(Vec<WireLabel>, Option<Vec<Vec<Block>>>)> {
         let res;
         let garbler_len = input_garbler.len();
         let evaluator_len = input_evaluator.len();
@@ -122,13 +123,15 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                 channel.flush().unwrap();
 
                 {
-                    let (gc, _masked_data) = gen.garble(rng, circ, &input_zero_labels).unwrap();
+                    let (gc, masked_data) = gen
+                        .garble(rng, circ, &input_zero_labels, data_to_mask)
+                        .unwrap();
                     *public_one_label = gc.gc_table.public_one_label;
                     send_gc_table(channel, &gc.gc_table).unwrap();
                     channel.flush().unwrap();
 
                     res = gc.output_zero_labels;
-                    return Ok(res);
+                    return Ok((res, masked_data));
                 }
             }
             GCParty::EVA(eva) => {
@@ -164,7 +167,7 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
 
                     res = eva.eval(circ, &gc_table, &input_wirelabels).unwrap();
 
-                    return Ok(res);
+                    return Ok((res, None));
                 }
             }
         }
@@ -279,7 +282,7 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
 
                 {
                     let (gc, _masked_data) = gen
-                        .compose(circ, &composed_input_wires, *public_one_label)
+                        .compose(circ, &composed_input_wires, *public_one_label, &None)
                         .unwrap();
 
                     send_gc_table(channel, &gc.gc_table).unwrap();
@@ -377,7 +380,8 @@ mod tests {
             let circ = Circuit::load("../circuit/circuit_files/bristol/adder64.txt").unwrap();
 
             let mut prot = TwopcProtocol::new(sender, Party::Garbler, &mut rng);
-            let output_zero_labels = prot.compute(&mut rng, &circ, &m1, &m2).unwrap();
+            let (output_zero_labels, _masked_data) =
+                prot.compute(&mut rng, &circ, &m1, &m2, &None).unwrap();
             let _res = prot.finalize(&output_zero_labels).unwrap();
         });
 
@@ -389,7 +393,8 @@ mod tests {
         let circ = Circuit::load("../circuit/circuit_files/bristol/adder64.txt").unwrap();
 
         let mut prot = TwopcProtocol::new(receiver, Party::Evaluator, &mut rng);
-        let output_zero_labels = prot.compute(&mut rng, &circ, &m1, &m2).unwrap();
+        let (output_zero_labels, _masked_data) =
+            prot.compute(&mut rng, &circ, &m1, &m2, &None).unwrap();
 
         let res = prot.finalize(&output_zero_labels).unwrap();
         assert_eq!(res, expected_res);
@@ -410,7 +415,8 @@ mod tests {
             let circ = Circuit::load("../circuit/circuit_files/bristol/aes_128.txt").unwrap();
 
             let mut prot = TwopcProtocol::new(sender, Party::Garbler, &mut rng);
-            let output_zero_labels = prot.compute(&mut rng, &circ, &input, &key).unwrap();
+            let (output_zero_labels, _masked_data) =
+                prot.compute(&mut rng, &circ, &input, &key, &None).unwrap();
             let _res = prot.finalize(&output_zero_labels).unwrap();
         });
 
@@ -421,7 +427,8 @@ mod tests {
         let circ = Circuit::load("../circuit/circuit_files/bristol/aes_128.txt").unwrap();
 
         let mut prot = TwopcProtocol::new(receiver, Party::Evaluator, &mut rng);
-        let output_zero_labels = prot.compute(&mut rng, &circ, &input, &key).unwrap();
+        let (output_zero_labels, _masked_data) =
+            prot.compute(&mut rng, &circ, &input, &key, &None).unwrap();
 
         let res = prot.finalize(&output_zero_labels).unwrap();
         let res = res
@@ -474,7 +481,8 @@ mod tests {
             // let indicator = Some(map);
 
             let mut prot = TwopcProtocol::new(sender, Party::Garbler, &mut rng);
-            let output_zero_labels = prot.compute(&mut rng, &circ, &m1, &m2).unwrap();
+            let (output_zero_labels, _masked_data) =
+                prot.compute(&mut rng, &circ, &m1, &m2, &None).unwrap();
 
             let out_labels = prot
                 .composite(
@@ -509,7 +517,8 @@ mod tests {
         // let indicator = Some(map);
 
         let mut prot = TwopcProtocol::new(receiver, Party::Evaluator, &mut rng);
-        let output_zero_labels = prot.compute(&mut rng, &circ, &m1, &m2).unwrap();
+        let (output_zero_labels, _masked_data) =
+            prot.compute(&mut rng, &circ, &m1, &m2, &None).unwrap();
 
         let out_labels = prot
             .composite(

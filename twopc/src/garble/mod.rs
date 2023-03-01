@@ -56,7 +56,9 @@ mod tests {
         let mut ev = HalfGateEvaluator::new();
 
         // Garbling the circuit.
-        let (gc, _masked_data) = gen.garble(&mut rng, &circ, &input_zero_labels).unwrap();
+        let (gc, _masked_data) = gen
+            .garble(&mut rng, &circ, &input_zero_labels, &None)
+            .unwrap();
 
         // Initiate the input from generator.
         let generator_inputs: Vec<CircuitInput> = m1
@@ -121,7 +123,9 @@ mod tests {
         let mut ev = HalfGateEvaluator::new();
 
         // Garbling the circuit.
-        let (gc, _masked_data) = gen.garble(&mut rng, &circ, &input_zero_labels).unwrap();
+        let (gc, _masked_data) = gen
+            .garble(&mut rng, &circ, &input_zero_labels, &None)
+            .unwrap();
 
         // Initiate the input from generator.
         let generator_inputs: Vec<CircuitInput> = input
@@ -224,7 +228,9 @@ mod tests {
         let mut ev = HalfGateEvaluator::new();
 
         // Garbling the first add64 circuit for m1 + m2.
-        let (gc, _masked_data) = gen.garble(&mut rng, &circ, &input_zero_labels).unwrap();
+        let (gc, _masked_data) = gen
+            .garble(&mut rng, &circ, &input_zero_labels, &None)
+            .unwrap();
 
         // Concatnenate the output zero labels of m1+m2 and input zero labels of m3.
         let mut m1m2m3_zero_labels =
@@ -232,7 +238,12 @@ mod tests {
 
         // Compose the add64 gate associated with m3.
         let (composed_gc, _masked_data) = gen
-            .compose(&circ, &mut m1m2m3_zero_labels, gc.gc_table.public_one_label)
+            .compose(
+                &circ,
+                &mut m1m2m3_zero_labels,
+                gc.gc_table.public_one_label,
+                &None,
+            )
             .unwrap();
 
         // Generate the decoding information of composed circuits.
@@ -338,7 +349,9 @@ mod tests {
         let mut ev = HalfGateEvaluator::new();
 
         // Garbling the first AES circuit for c = AES(K,m).
-        let (gc, _masked_data) = gen.garble(&mut rng, &circ, &input_zero_labels).unwrap();
+        let (gc, _masked_data) = gen
+            .garble(&mut rng, &circ, &input_zero_labels, &None)
+            .unwrap();
 
         // Concatenate the output zero labels of c and input zero labels of key.
         let mut c_key_zero_labels = [
@@ -349,7 +362,12 @@ mod tests {
 
         // Compose AES(K,c).
         let (composed_gc, _masked_data) = gen
-            .compose(&circ, &mut c_key_zero_labels, gc.gc_table.public_one_label)
+            .compose(
+                &circ,
+                &mut c_key_zero_labels,
+                gc.gc_table.public_one_label,
+                &None,
+            )
             .unwrap();
 
         // Generate the decoding information of composed circuits.

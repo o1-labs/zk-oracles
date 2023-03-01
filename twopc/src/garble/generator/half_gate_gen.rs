@@ -68,6 +68,7 @@ impl HalfGateGenerator {
         circ: &Circuit,
         input_zero_labels: &[WireLabel],
         public_one_label: Block,
+        data_to_mask: &Option<Vec<Vec<Block>>>,
     ) -> Result<(Vec<[Block; 2]>, Vec<WireLabel>, Option<Vec<Vec<Block>>>), GeneratorError> {
         assert_eq!(
             input_zero_labels.len(),
@@ -130,8 +131,6 @@ impl HalfGateGenerator {
 
         let mut output_zero_labels: Vec<WireLabel> = Vec::with_capacity(circ.noutput_wires);
 
-        let data_to_mask: Option<Vec<Vec<Block>>> = None;
-
         let final_offset = circ.nwires - circ.noutput_wires;
 
         let masked_data: Option<Vec<Vec<Block>>> = data_to_mask.as_ref().map(|data_to_mask| {
@@ -162,12 +161,13 @@ impl GCGenerator for HalfGateGenerator {
         rng: &mut R,
         circ: &Circuit,
         input_zero_labels: &[WireLabel],
+        data_to_mask: &Option<Vec<Vec<Block>>>,
     ) -> Result<(GarbledCircuit, Option<Vec<Vec<Block>>>), GeneratorError> {
         // Generate a random label for public 1.
         let public_one_label = rng.gen::<Block>() ^ self.delta;
 
         let (table, output_zero_labels, masked_data) =
-            self.gen_core(&circ, &input_zero_labels, public_one_label)?;
+            self.gen_core(&circ, &input_zero_labels, public_one_label, data_to_mask)?;
 
         let gc_table = GarbledCircuitTable::new(table, public_one_label);
 
@@ -182,6 +182,7 @@ impl GCGenerator for HalfGateGenerator {
         circ: &Circuit,
         output_zero_labels: &Vec<WireLabel>,
         public_one_label: Block,
+        data_to_mask: &Option<Vec<Vec<Block>>>,
     ) -> Result<(GarbledCircuit, Option<Vec<Vec<Block>>>), GeneratorError> {
         assert_eq!(
             output_zero_labels.len(),
@@ -190,7 +191,7 @@ impl GCGenerator for HalfGateGenerator {
         );
 
         let (table, output_labels, masked_data) = self
-            .gen_core(&circ, &output_zero_labels, public_one_label)
+            .gen_core(&circ, &output_zero_labels, public_one_label, data_to_mask)
             .unwrap();
 
         let gc_table = GarbledCircuitTable::new(table, public_one_label);
