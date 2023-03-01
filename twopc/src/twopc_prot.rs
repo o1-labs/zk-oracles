@@ -170,11 +170,7 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
         }
     }
 
-    pub fn finalize(
-        &mut self,
-        party: Party,
-        output_zero_labels: &Vec<WireLabel>,
-    ) -> Result<Vec<bool>> {
+    pub fn finalize(&mut self, output_zero_labels: &Vec<WireLabel>) -> Result<Vec<bool>> {
         let mut res = Vec::<bool>::new();
 
         let TwopcProtocol {
@@ -184,37 +180,25 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
             public_one_label: _,
         } = &mut (*self);
 
-        match party {
-            Party::Garbler => match gc_party {
-                GCParty::GEN(gen) => {
-                    let decode_info = gen.finalize(&output_zero_labels);
-                    send_decode_info(channel, &decode_info).unwrap();
-                    return Ok(res);
-                }
+        match gc_party {
+            GCParty::GEN(gen) => {
+                let decode_info = gen.finalize(&output_zero_labels);
+                send_decode_info(channel, &decode_info).unwrap();
+                return Ok(res);
+            }
+            GCParty::EVA(eva) => {
+                let mut decode_info = vec![
+                    OutputDecodeInfo {
+                        id: 0,
+                        decode_info: false
+                    };
+                    output_zero_labels.len()
+                ];
 
-                _ => {
-                    return Ok(res);
-                }
-            },
-            Party::Evaluator => match gc_party {
-                GCParty::EVA(eva) => {
-                    let mut decode_info = vec![
-                        OutputDecodeInfo {
-                            id: 0,
-                            decode_info: false
-                        };
-                        output_zero_labels.len()
-                    ];
-
-                    receive_decode_info(channel, &mut decode_info).unwrap();
-                    res = eva.finalize(output_zero_labels, &decode_info);
-                    return Ok(res);
-                }
-
-                _ => {
-                    return Ok(res);
-                }
-            },
+                receive_decode_info(channel, &mut decode_info).unwrap();
+                res = eva.finalize(output_zero_labels, &decode_info);
+                return Ok(res);
+            }
         }
     }
 
@@ -403,7 +387,7 @@ mod tests {
 
             let mut prot = TwopcProtocol::new(sender, Party::Garbler, &mut rng);
             let output_zero_labels = prot.compute(&mut rng, &circ, &m1, &m2).unwrap();
-            let _res = prot.finalize(Party::Garbler, &output_zero_labels).unwrap();
+            let _res = prot.finalize(&output_zero_labels).unwrap();
         });
 
         let m1 = vec![false; 64];
@@ -416,9 +400,7 @@ mod tests {
         let mut prot = TwopcProtocol::new(receiver, Party::Evaluator, &mut rng);
         let output_zero_labels = prot.compute(&mut rng, &circ, &m1, &m2).unwrap();
 
-        let res = prot
-            .finalize(Party::Evaluator, &output_zero_labels)
-            .unwrap();
+        let res = prot.finalize(&output_zero_labels).unwrap();
         assert_eq!(res, expected_res);
         handle.join().unwrap();
     }
@@ -438,7 +420,7 @@ mod tests {
 
             let mut prot = TwopcProtocol::new(sender, Party::Garbler, &mut rng);
             let output_zero_labels = prot.compute(&mut rng, &circ, &input, &key).unwrap();
-            let _res = prot.finalize(Party::Garbler, &output_zero_labels).unwrap();
+            let _res = prot.finalize(&output_zero_labels).unwrap();
         });
 
         let input = vec![false; 128]; // the value here is not important, could be anything.
@@ -450,9 +432,7 @@ mod tests {
         let mut prot = TwopcProtocol::new(receiver, Party::Evaluator, &mut rng);
         let output_zero_labels = prot.compute(&mut rng, &circ, &input, &key).unwrap();
 
-        let res = prot
-            .finalize(Party::Evaluator, &output_zero_labels)
-            .unwrap();
+        let res = prot.finalize(&output_zero_labels).unwrap();
         let res = res
             .into_iter()
             .map(|i| (i as u8).to_string())
@@ -516,7 +496,7 @@ mod tests {
                     &map,
                 )
                 .unwrap();
-            let _res = prot.finalize(Party::Garbler, &out_labels).unwrap();
+            let _res = prot.finalize(&out_labels).unwrap();
         });
 
         let m1 = vec![false; 64]; // no need to care about this value
@@ -553,7 +533,7 @@ mod tests {
             )
             .unwrap();
 
-        let res = prot.finalize(Party::Evaluator, &out_labels).unwrap();
+        let res = prot.finalize(&out_labels).unwrap();
         assert_eq!(res, expected_res);
         handle.join().unwrap();
     }
