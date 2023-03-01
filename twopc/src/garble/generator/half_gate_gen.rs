@@ -68,7 +68,7 @@ impl HalfGateGenerator {
         circ: &Circuit,
         input_zero_labels: &[WireLabel],
         public_one_label: Block,
-    ) -> Result<(Vec<[Block; 2]>, Vec<WireLabel>), GeneratorError> {
+    ) -> Result<(Vec<[Block; 2]>, Vec<WireLabel>, Option<Vec<Vec<Block>>>), GeneratorError> {
         assert_eq!(
             input_zero_labels.len(),
             circ.ninput_wires,
@@ -130,16 +130,29 @@ impl HalfGateGenerator {
 
         let mut output_zero_labels: Vec<WireLabel> = Vec::with_capacity(circ.noutput_wires);
 
-        for (id, wire) in (circ.nwires - circ.noutput_wires..circ.nwires)
-            .zip(wire_labels.iter().skip(circ.nwires - circ.noutput_wires))
-        {
+        let data_to_mask: Option<Vec<Vec<Block>>> = None;
+
+        let final_offset = circ.nwires - circ.noutput_wires;
+
+        let masked_data: Option<Vec<Vec<Block>>> = data_to_mask.as_ref().map(|data_to_mask| {
+            data_to_mask
+                .iter()
+                .enumerate()
+                .map(|(i, data)| {
+                    let label = wire_labels[i / 2 + final_offset].as_ref().unwrap()[i % 2];
+                    data.iter().map(|datum| *datum ^ label).collect()
+                })
+                .collect()
+        });
+
+        for (id, wire) in (final_offset..circ.nwires).zip(wire_labels.iter().skip(final_offset)) {
             output_zero_labels.push(WireLabel {
                 id,
                 label: wire.unwrap()[0],
             });
         }
 
-        Ok((table, output_zero_labels))
+        Ok((table, output_zero_labels, masked_data))
     }
 }
 
@@ -149,16 +162,19 @@ impl GCGenerator for HalfGateGenerator {
         rng: &mut R,
         circ: &Circuit,
         input_zero_labels: &[WireLabel],
-    ) -> Result<GarbledCircuit, GeneratorError> {
+    ) -> Result<(GarbledCircuit, Option<Vec<Vec<Block>>>), GeneratorError> {
         // Generate a random label for public 1.
         let public_one_label = rng.gen::<Block>() ^ self.delta;
 
-        let (table, output_zero_labels) =
+        let (table, output_zero_labels, masked_data) =
             self.gen_core(&circ, &input_zero_labels, public_one_label)?;
 
         let gc_table = GarbledCircuitTable::new(table, public_one_label);
 
-        Ok(GarbledCircuit::new(gc_table, output_zero_labels))
+        Ok((
+            GarbledCircuit::new(gc_table, output_zero_labels),
+            masked_data,
+        ))
     }
 
     fn compose(
@@ -166,20 +182,20 @@ impl GCGenerator for HalfGateGenerator {
         circ: &Circuit,
         output_zero_labels: &Vec<WireLabel>,
         public_one_label: Block,
-    ) -> Result<GarbledCircuit, GeneratorError> {
+    ) -> Result<(GarbledCircuit, Option<Vec<Vec<Block>>>), GeneratorError> {
         assert_eq!(
             output_zero_labels.len(),
             circ.ninput_wires,
             "Input and outputs sizes are not consistent!"
         );
 
-        let (table, output_labels) = self
+        let (table, output_labels, masked_data) = self
             .gen_core(&circ, &output_zero_labels, public_one_label)
             .unwrap();
 
         let gc_table = GarbledCircuitTable::new(table, public_one_label);
 
-        Ok(GarbledCircuit::new(gc_table, output_labels))
+        Ok((GarbledCircuit::new(gc_table, output_labels), masked_data))
     }
 
     fn finalize(&self, output_zero_labels: &Vec<WireLabel>) -> Vec<OutputDecodeInfo> {

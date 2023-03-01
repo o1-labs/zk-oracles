@@ -122,7 +122,7 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                 channel.flush().unwrap();
 
                 {
-                    let gc = gen.garble(rng, circ, &input_zero_labels).unwrap();
+                    let (gc, _masked_data) = gen.garble(rng, circ, &input_zero_labels).unwrap();
                     *public_one_label = gc.gc_table.public_one_label;
                     send_gc_table(channel, &gc.gc_table).unwrap();
                     channel.flush().unwrap();
@@ -278,7 +278,7 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                 }
 
                 {
-                    let gc = gen
+                    let (gc, _masked_data) = gen
                         .compose(circ, &composed_input_wires, *public_one_label)
                         .unwrap();
 
