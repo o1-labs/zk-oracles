@@ -176,43 +176,45 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
         output_zero_labels: &Vec<WireLabel>,
     ) -> Result<Vec<bool>> {
         let mut res = Vec::<bool>::new();
+
+        let TwopcProtocol {
+            channel,
+            delta: _,
+            gc_party,
+            public_one_label: _,
+        } = &mut (*self);
+
         match party {
-            Party::Garbler => {
-                let gc_party = self.gc_party.clone();
-                match gc_party {
-                    GCParty::GEN(gen) => {
-                        let decode_info = gen.finalize(&output_zero_labels);
-                        send_decode_info(&mut self.channel, &decode_info).unwrap();
-                        return Ok(res);
-                    }
-
-                    _ => {
-                        return Ok(res);
-                    }
+            Party::Garbler => match gc_party {
+                GCParty::GEN(gen) => {
+                    let decode_info = gen.finalize(&output_zero_labels);
+                    send_decode_info(channel, &decode_info).unwrap();
+                    return Ok(res);
                 }
-            }
-            Party::Evaluator => {
-                let gc_party = self.gc_party.clone();
-                match gc_party {
-                    GCParty::EVA(eva) => {
-                        let mut decode_info = vec![
-                            OutputDecodeInfo {
-                                id: 0,
-                                decode_info: false
-                            };
-                            output_zero_labels.len()
-                        ];
 
-                        receive_decode_info(&mut self.channel, &mut decode_info).unwrap();
-                        res = eva.finalize(output_zero_labels, &decode_info);
-                        return Ok(res);
-                    }
-
-                    _ => {
-                        return Ok(res);
-                    }
+                _ => {
+                    return Ok(res);
                 }
-            }
+            },
+            Party::Evaluator => match gc_party {
+                GCParty::EVA(eva) => {
+                    let mut decode_info = vec![
+                        OutputDecodeInfo {
+                            id: 0,
+                            decode_info: false
+                        };
+                        output_zero_labels.len()
+                    ];
+
+                    receive_decode_info(channel, &mut decode_info).unwrap();
+                    res = eva.finalize(output_zero_labels, &decode_info);
+                    return Ok(res);
+                }
+
+                _ => {
+                    return Ok(res);
+                }
+            },
         }
     }
 
