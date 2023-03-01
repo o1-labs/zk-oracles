@@ -15,28 +15,27 @@ use std::collections::HashMap;
 use std::io::Result;
 
 pub enum Party {
-    ALICE,
-    BOB,
+    Garbler,
+    Evaluator,
 }
 
 #[derive(Clone)]
-pub enum GCParty {
+enum GCParty {
     GEN(HalfGateGenerator),
     EVA(HalfGateEvaluator),
 }
 
 pub struct TwopcProtocol<C: AbstractChannel> {
-    pub channel: C,
-    pub party: Party,
-    pub delta: Block,
-    pub gc_party: GCParty,
-    pub public_one_label: Block,
+    channel: C,
+    delta: Block,
+    gc_party: GCParty,
+    public_one_label: Block,
 }
 
 impl<C: AbstractChannel> TwopcProtocol<C> {
     pub fn new<R: Rng + CryptoRng>(channel: C, party: Party, rng: &mut R) -> Self {
         match party {
-            Party::ALICE => {
+            Party::Garbler => {
                 let mut delta = rng.gen::<Block>();
                 delta = delta.set_lsb();
                 let gen = HalfGateGenerator::new(delta);
@@ -44,20 +43,18 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                 let public_one_label = Block::default();
                 Self {
                     channel,
-                    party,
                     delta,
                     gc_party,
                     public_one_label,
                 }
             }
-            Party::BOB => {
+            Party::Evaluator => {
                 let delta = Block::default();
                 let eva = HalfGateEvaluator::new();
                 let gc_party = GCParty::EVA(eva);
                 let public_one_label = Block::default();
                 Self {
                     channel,
-                    party,
                     delta,
                     gc_party,
                     public_one_label,
@@ -68,42 +65,46 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
 
     pub fn compute<R: Rng + CryptoRng>(
         &mut self,
-        party: Party,
         rng: &mut R,
         circ: &Circuit,
-        input_alice: &[bool],
-        input_bob: &[bool],
+        input_garbler: &[bool],
+        input_evaluator: &[bool],
     ) -> Result<Vec<WireLabel>> {
-        let mut res = Vec::<WireLabel>::new();
-        let alice_len = input_alice.len();
-        let bob_len = input_bob.len();
+        let res;
+        let garbler_len = input_garbler.len();
+        let evaluator_len = input_evaluator.len();
 
-        match party {
-            Party::ALICE => {
+        let TwopcProtocol {
+            channel,
+            delta,
+            gc_party,
+            public_one_label,
+        } = &mut (*self);
+
+        match gc_party {
+            GCParty::GEN(gen) => {
                 let mut kosot = KOSSender::new(COReceiver);
-                kosot
-                    .send_init_with_delta(&mut self.channel, rng, self.delta)
-                    .unwrap();
+                kosot.send_init_with_delta(channel, rng, *delta).unwrap();
 
-                let bob_input_blks = kosot.send(&mut self.channel, rng, bob_len).unwrap();
-                let bob_input_zero_blks = bob_input_blks
+                let evaluator_input_blks = kosot.send(channel, rng, evaluator_len).unwrap();
+                let evaluator_input_zero_blks = evaluator_input_blks
                     .into_iter()
                     .map(|(x, _)| x)
                     .collect::<Vec<Block>>();
 
-                let alice_input_zero_blks = (0..alice_len)
+                let garbler_input_zero_blks = (0..garbler_len)
                     .into_iter()
                     .map(|_| rng.gen::<Block>())
                     .collect::<Vec<Block>>();
 
-                let input_zero_blks = [alice_input_zero_blks, bob_input_zero_blks].concat();
+                let input_zero_blks = [garbler_input_zero_blks, evaluator_input_zero_blks].concat();
 
                 let input_zero_labels = (0..circ.ninput_wires)
                     .zip(input_zero_blks)
                     .map(|(id, label)| WireLabel { id, label })
                     .collect::<Vec<WireLabel>>();
 
-                let input: Vec<CircuitInput> = input_alice
+                let input: Vec<CircuitInput> = input_garbler
                     .iter()
                     .enumerate()
                     .map(|(id, value)| CircuitInput {
@@ -112,125 +113,97 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                     })
                     .collect();
 
-                let alice_wirelabels = encode(
-                    &input_zero_labels[0..input_alice.len()].to_vec(),
+                let garbler_wirelabels = encode(
+                    &input_zero_labels[0..input_garbler.len()].to_vec(),
                     &input,
-                    self.delta,
+                    *delta,
                 );
-                send_wirelabels(&mut self.channel, &alice_wirelabels).unwrap();
-                self.channel.flush().unwrap();
+                send_wirelabels(channel, &garbler_wirelabels).unwrap();
+                channel.flush().unwrap();
 
-                let gc_party = self.gc_party.clone();
-                match gc_party {
-                    GCParty::GEN(mut gen) => {
-                        let gc = gen.garble(rng, circ, &input_zero_labels).unwrap();
-                        self.public_one_label = gc.gc_table.public_one_label;
-                        send_gc_table(&mut self.channel, &gc.gc_table).unwrap();
-                        self.channel.flush().unwrap();
+                {
+                    let gc = gen.garble(rng, circ, &input_zero_labels).unwrap();
+                    *public_one_label = gc.gc_table.public_one_label;
+                    send_gc_table(channel, &gc.gc_table).unwrap();
+                    channel.flush().unwrap();
 
-                        res = gc.output_zero_labels;
-                        return Ok(res);
-                    }
-                    _ => {
-                        return Ok(res);
-                    }
+                    res = gc.output_zero_labels;
+                    return Ok(res);
                 }
             }
-            Party::BOB => {
+            GCParty::EVA(eva) => {
                 let mut kosot = KOSReceiver::new(COSender);
-                kosot.receive_init(&mut self.channel, rng).unwrap();
+                kosot.receive_init(channel, rng).unwrap();
 
-                let bob_input_blks = kosot.receive(&mut self.channel, &input_bob, rng).unwrap();
+                let evaluator_input_blks = kosot.receive(channel, &input_evaluator, rng).unwrap();
 
-                let bob_wirelabels = (alice_len..alice_len + bob_len)
-                    .zip(bob_input_blks)
+                let evaluator_wirelabels = (garbler_len..garbler_len + evaluator_len)
+                    .zip(evaluator_input_blks)
                     .map(|(id, label)| WireLabel { id, label })
                     .collect::<Vec<WireLabel>>();
 
-                let mut alice_wirelabels = vec![
+                let mut garbler_wirelabels = vec![
                     WireLabel {
                         id: 0,
                         label: Block::default()
                     };
-                    alice_len
+                    garbler_len
                 ];
 
-                receive_wirelabels(&mut self.channel, &mut alice_wirelabels).unwrap();
+                receive_wirelabels(channel, &mut garbler_wirelabels).unwrap();
 
-                let gc_party = self.gc_party.clone();
-                match gc_party {
-                    GCParty::EVA(mut eva) => {
-                        let input_wirelabels = [alice_wirelabels, bob_wirelabels].concat();
-                        let mut gc_table = GarbledCircuitTable::new(
-                            vec![[Block::default(); 2]; circ.nand],
-                            Block::default(),
-                        );
+                {
+                    let input_wirelabels = [garbler_wirelabels, evaluator_wirelabels].concat();
+                    let mut gc_table = GarbledCircuitTable::new(
+                        vec![[Block::default(); 2]; circ.nand],
+                        Block::default(),
+                    );
 
-                        receive_gc_table(&mut self.channel, &mut gc_table).unwrap();
-                        self.public_one_label = gc_table.public_one_label;
+                    receive_gc_table(channel, &mut gc_table).unwrap();
+                    *public_one_label = gc_table.public_one_label;
 
-                        res = eva.eval(circ, &gc_table, &input_wirelabels).unwrap();
+                    res = eva.eval(circ, &gc_table, &input_wirelabels).unwrap();
 
-                        return Ok(res);
-                    }
-
-                    _ => {
-                        return Ok(res);
-                    }
+                    return Ok(res);
                 }
             }
         }
     }
 
-    pub fn finalize(
-        &mut self,
-        party: Party,
-        output_zero_labels: &Vec<WireLabel>,
-    ) -> Result<Vec<bool>> {
+    pub fn finalize(&mut self, output_zero_labels: &Vec<WireLabel>) -> Result<Vec<bool>> {
         let mut res = Vec::<bool>::new();
-        match party {
-            Party::ALICE => {
-                let gc_party = self.gc_party.clone();
-                match gc_party {
-                    GCParty::GEN(gen) => {
-                        let decode_info = gen.finalize(&output_zero_labels);
-                        send_decode_info(&mut self.channel, &decode_info).unwrap();
-                        return Ok(res);
-                    }
 
-                    _ => {
-                        return Ok(res);
-                    }
-                }
+        let TwopcProtocol {
+            channel,
+            delta: _,
+            gc_party,
+            public_one_label: _,
+        } = &mut (*self);
+
+        match gc_party {
+            GCParty::GEN(gen) => {
+                let decode_info = gen.finalize(&output_zero_labels);
+                send_decode_info(channel, &decode_info).unwrap();
+                return Ok(res);
             }
-            Party::BOB => {
-                let gc_party = self.gc_party.clone();
-                match gc_party {
-                    GCParty::EVA(eva) => {
-                        let mut decode_info = vec![
-                            OutputDecodeInfo {
-                                id: 0,
-                                decode_info: false
-                            };
-                            output_zero_labels.len()
-                        ];
+            GCParty::EVA(eva) => {
+                let mut decode_info = vec![
+                    OutputDecodeInfo {
+                        id: 0,
+                        decode_info: false
+                    };
+                    output_zero_labels.len()
+                ];
 
-                        receive_decode_info(&mut self.channel, &mut decode_info).unwrap();
-                        res = eva.finalize(output_zero_labels, &decode_info);
-                        return Ok(res);
-                    }
-
-                    _ => {
-                        return Ok(res);
-                    }
-                }
+                receive_decode_info(channel, &mut decode_info).unwrap();
+                res = eva.finalize(output_zero_labels, &decode_info);
+                return Ok(res);
             }
         }
     }
 
     pub fn composite<R: Rng + CryptoRng>(
         &mut self,
-        party: Party,
         rng: &mut R,
         circ: &Circuit,
         input_wires: &Vec<WireLabel>,
@@ -238,13 +211,20 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
         input_party: Party,
         indicator: &HashMap<usize, usize>,
     ) -> Result<Vec<WireLabel>> {
-        let mut res = Vec::<WireLabel>::new();
+        let res;
         let input_len = input.len();
         let input_wires_len = input_wires.len();
         let mut composed_input_wires = Vec::<WireLabel>::new();
 
-        match party {
-            Party::ALICE => {
+        let TwopcProtocol {
+            channel,
+            delta,
+            gc_party,
+            public_one_label,
+        } = &mut (*self);
+
+        match gc_party {
+            GCParty::GEN(gen) => {
                 for wire in input_wires {
                     composed_input_wires.push(WireLabel {
                         id: *indicator.get(&wire.id).unwrap(),
@@ -252,7 +232,7 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                     });
                 }
                 match input_party {
-                    Party::ALICE => {
+                    Party::Garbler => {
                         for i in input_wires_len..input_wires_len + input_len {
                             composed_input_wires.push(WireLabel {
                                 id: i,
@@ -273,18 +253,16 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                             &composed_input_wires[input_wires_len..input_wires_len + input_len]
                                 .to_vec(),
                             &c_input,
-                            self.delta,
+                            *delta,
                         );
-                        send_wirelabels(&mut self.channel, &input_wirelabels).unwrap();
+                        send_wirelabels(channel, &input_wirelabels).unwrap();
                     }
 
-                    Party::BOB => {
+                    Party::Evaluator => {
                         let mut kosot = KOSSender::new(COReceiver);
-                        kosot
-                            .send_init_with_delta(&mut self.channel, rng, self.delta)
-                            .unwrap();
+                        kosot.send_init_with_delta(channel, rng, *delta).unwrap();
 
-                        let input_blks = kosot.send(&mut self.channel, rng, input_len).unwrap();
+                        let input_blks = kosot.send(channel, rng, input_len).unwrap();
                         let input_zero_blks = input_blks
                             .into_iter()
                             .map(|(x, _)| x)
@@ -299,25 +277,19 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                     }
                 }
 
-                let gc_party = self.gc_party.clone();
-                match gc_party {
-                    GCParty::GEN(mut gen) => {
-                        let gc = gen
-                            .compose(circ, &composed_input_wires, self.public_one_label)
-                            .unwrap();
+                {
+                    let gc = gen
+                        .compose(circ, &composed_input_wires, *public_one_label)
+                        .unwrap();
 
-                        send_gc_table(&mut self.channel, &gc.gc_table).unwrap();
-                        self.channel.flush().unwrap();
+                    send_gc_table(channel, &gc.gc_table).unwrap();
+                    channel.flush().unwrap();
 
-                        res = gc.output_zero_labels;
-                        return Ok(res);
-                    }
-                    _ => {
-                        return Ok(res);
-                    }
+                    res = gc.output_zero_labels;
+                    return Ok(res);
                 }
             }
-            Party::BOB => {
+            GCParty::EVA(eva) => {
                 for wire in input_wires {
                     composed_input_wires.push(WireLabel {
                         id: wire.id,
@@ -326,7 +298,7 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                 }
 
                 match input_party {
-                    Party::ALICE => {
+                    Party::Garbler => {
                         let mut input_wirelabels = vec![
                             WireLabel {
                                 id: 0,
@@ -334,17 +306,17 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                             };
                             input_len
                         ];
-                        receive_wirelabels(&mut self.channel, &mut input_wirelabels).unwrap();
+                        receive_wirelabels(channel, &mut input_wirelabels).unwrap();
 
                         for i in input_wirelabels {
                             composed_input_wires.push(i);
                         }
                     }
-                    Party::BOB => {
+                    Party::Evaluator => {
                         let mut kosot = KOSReceiver::new(COSender);
-                        kosot.receive_init(&mut self.channel, rng).unwrap();
+                        kosot.receive_init(channel, rng).unwrap();
 
-                        let input_blks = kosot.receive(&mut self.channel, &input, rng).unwrap();
+                        let input_blks = kosot.receive(channel, &input, rng).unwrap();
                         for i in input_wires_len..input_wires_len + input_len {
                             composed_input_wires.push(WireLabel {
                                 id: i,
@@ -353,28 +325,21 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                         }
                     }
                 }
-                let gc_party = self.gc_party.clone();
-                match gc_party {
-                    GCParty::EVA(mut eva) => {
-                        let mut gc_table = GarbledCircuitTable::new(
-                            vec![[Block::default(); 2]; circ.nand],
-                            Block::default(),
-                        );
+                {
+                    let mut gc_table = GarbledCircuitTable::new(
+                        vec![[Block::default(); 2]; circ.nand],
+                        Block::default(),
+                    );
 
-                        receive_gc_table(&mut self.channel, &mut gc_table).unwrap();
-                        let ind = indicator.clone();
-                        res = eva
-                            .compose(circ, &gc_table, &composed_input_wires, &Some(ind))
-                            .unwrap();
+                    receive_gc_table(channel, &mut gc_table).unwrap();
+                    let ind = indicator.clone();
+                    res = eva
+                        .compose(circ, &gc_table, &composed_input_wires, &Some(ind))
+                        .unwrap();
 
-                        // res = eva.eval(circ, &gc_table, &composed_input_wires).unwrap();
+                    // res = eva.eval(circ, &gc_table, &composed_input_wires).unwrap();
 
-                        return Ok(res);
-                    }
-
-                    _ => {
-                        return Ok(res);
-                    }
+                    return Ok(res);
                 }
             }
         }
@@ -411,11 +376,9 @@ mod tests {
             let mut rng = AesRng::new();
             let circ = Circuit::load("../circuit/circuit_files/bristol/adder64.txt").unwrap();
 
-            let mut prot = TwopcProtocol::new(sender, Party::ALICE, &mut rng);
-            let output_zero_labels = prot
-                .compute(Party::ALICE, &mut rng, &circ, &m1, &m2)
-                .unwrap();
-            let _res = prot.finalize(Party::ALICE, &output_zero_labels).unwrap();
+            let mut prot = TwopcProtocol::new(sender, Party::Garbler, &mut rng);
+            let output_zero_labels = prot.compute(&mut rng, &circ, &m1, &m2).unwrap();
+            let _res = prot.finalize(&output_zero_labels).unwrap();
         });
 
         let m1 = vec![false; 64];
@@ -425,10 +388,10 @@ mod tests {
         let mut rng = AesRng::new();
         let circ = Circuit::load("../circuit/circuit_files/bristol/adder64.txt").unwrap();
 
-        let mut prot = TwopcProtocol::new(receiver, Party::BOB, &mut rng);
-        let output_zero_labels = prot.compute(Party::BOB, &mut rng, &circ, &m1, &m2).unwrap();
+        let mut prot = TwopcProtocol::new(receiver, Party::Evaluator, &mut rng);
+        let output_zero_labels = prot.compute(&mut rng, &circ, &m1, &m2).unwrap();
 
-        let res = prot.finalize(Party::BOB, &output_zero_labels).unwrap();
+        let res = prot.finalize(&output_zero_labels).unwrap();
         assert_eq!(res, expected_res);
         handle.join().unwrap();
     }
@@ -446,11 +409,9 @@ mod tests {
             let mut rng = AesRng::new();
             let circ = Circuit::load("../circuit/circuit_files/bristol/aes_128.txt").unwrap();
 
-            let mut prot = TwopcProtocol::new(sender, Party::ALICE, &mut rng);
-            let output_zero_labels = prot
-                .compute(Party::ALICE, &mut rng, &circ, &input, &key)
-                .unwrap();
-            let _res = prot.finalize(Party::ALICE, &output_zero_labels).unwrap();
+            let mut prot = TwopcProtocol::new(sender, Party::Garbler, &mut rng);
+            let output_zero_labels = prot.compute(&mut rng, &circ, &input, &key).unwrap();
+            let _res = prot.finalize(&output_zero_labels).unwrap();
         });
 
         let input = vec![false; 128]; // the value here is not important, could be anything.
@@ -459,12 +420,10 @@ mod tests {
         let mut rng = AesRng::new();
         let circ = Circuit::load("../circuit/circuit_files/bristol/aes_128.txt").unwrap();
 
-        let mut prot = TwopcProtocol::new(receiver, Party::BOB, &mut rng);
-        let output_zero_labels = prot
-            .compute(Party::BOB, &mut rng, &circ, &input, &key)
-            .unwrap();
+        let mut prot = TwopcProtocol::new(receiver, Party::Evaluator, &mut rng);
+        let output_zero_labels = prot.compute(&mut rng, &circ, &input, &key).unwrap();
 
-        let res = prot.finalize(Party::BOB, &output_zero_labels).unwrap();
+        let res = prot.finalize(&output_zero_labels).unwrap();
         let res = res
             .into_iter()
             .map(|i| (i as u8).to_string())
@@ -514,30 +473,27 @@ mod tests {
             }
             // let indicator = Some(map);
 
-            let mut prot = TwopcProtocol::new(sender, Party::ALICE, &mut rng);
-            let output_zero_labels = prot
-                .compute(Party::ALICE, &mut rng, &circ, &m1, &m2)
-                .unwrap();
+            let mut prot = TwopcProtocol::new(sender, Party::Garbler, &mut rng);
+            let output_zero_labels = prot.compute(&mut rng, &circ, &m1, &m2).unwrap();
 
             let out_labels = prot
                 .composite(
-                    Party::ALICE,
                     &mut rng,
                     &circ,
                     &output_zero_labels,
                     &m3,
-                    Party::BOB,
+                    Party::Evaluator,
                     &map,
                 )
                 .unwrap();
-            let _res = prot.finalize(Party::ALICE, &out_labels).unwrap();
+            let _res = prot.finalize(&out_labels).unwrap();
         });
 
         let m1 = vec![false; 64]; // no need to care about this value
         let mut m2 = vec![false; 64];
         m2[0] = true;
         let mut m3 = vec![false; 64];
-        m3[0] = true; // the composition value is from BOB
+        m3[0] = true; // the composition value is from Evaluator
         let mut rng = AesRng::new();
         let circ = Circuit::load("../circuit/circuit_files/bristol/adder64.txt").unwrap();
 
@@ -552,22 +508,21 @@ mod tests {
         }
         // let indicator = Some(map);
 
-        let mut prot = TwopcProtocol::new(receiver, Party::BOB, &mut rng);
-        let output_zero_labels = prot.compute(Party::BOB, &mut rng, &circ, &m1, &m2).unwrap();
+        let mut prot = TwopcProtocol::new(receiver, Party::Evaluator, &mut rng);
+        let output_zero_labels = prot.compute(&mut rng, &circ, &m1, &m2).unwrap();
 
         let out_labels = prot
             .composite(
-                Party::BOB,
                 &mut rng,
                 &circ,
                 &output_zero_labels,
                 &m3,
-                Party::BOB,
+                Party::Evaluator,
                 &map,
             )
             .unwrap();
 
-        let res = prot.finalize(Party::BOB, &out_labels).unwrap();
+        let res = prot.finalize(&out_labels).unwrap();
         assert_eq!(res, expected_res);
         handle.join().unwrap();
     }
