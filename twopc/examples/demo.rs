@@ -7,7 +7,14 @@ use twopc::twopc_prot::*;
 
 fn demo(netio: NetChannel<TcpStream, TcpStream>) {
     let circ = Circuit::load("circuit/circuit_files/bristol/aes_128.txt").unwrap();
-    let data_to_mask = None;
+    let data_to_mask = Some({
+        let mut data_to_mask = Vec::with_capacity(2 * circ.noutput_wires);
+        for i in 0..circ.noutput_wires {
+            data_to_mask.push(vec![(i as u128).into()]);
+            data_to_mask.push(vec![(i as u128).into()]);
+        };
+        data_to_mask
+    });
 
     if netio.is_server() {
         let input = vec![true; 128];
@@ -19,6 +26,13 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
         let (output_zero_labels, _masked_data) = prot
             .compute(&mut rng, &circ, &input, &key, &data_to_mask)
             .unwrap();
+        if let Some(masked_data) = _masked_data {
+            for (i, data) in masked_data.iter().enumerate() {
+                for block in data.iter() {
+                    println!("masked_data[{}][{}] = {:?}", i / 2, i % 2, block)
+                }
+            }
+        }
         let res = prot.finalize(&output_zero_labels).unwrap();
         let res = res
             .into_iter()
@@ -51,6 +65,13 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
         let (output_zero_labels, _masked_data) = prot
             .compute(&mut rng, &circ, &input, &key, &data_to_mask)
             .unwrap();
+        if let Some(masked_data) = _masked_data {
+            for (i, data) in masked_data.iter().enumerate() {
+                for block in data.iter() {
+                    println!("masked_data[{}][{}] = {:?}", i / 2, i % 2, block)
+                }
+            }
+        }
         let res = prot.finalize(&output_zero_labels).unwrap();
         let res = res
             .into_iter()
