@@ -423,9 +423,13 @@ mod tests {
         let circ = Circuit::load("../circuit/circuit_files/bristol/adder64.txt").unwrap();
 
         let mut prot = TwopcProtocol::new(receiver, Party::Evaluator, &mut rng);
-        let output_zero_labels = prot.compute(Party::Evaluator, &mut rng, &circ, &m1, &m2).unwrap();
+        let output_zero_labels = prot
+            .compute(Party::Evaluator, &mut rng, &circ, &m1, &m2)
+            .unwrap();
 
-        let res = prot.finalize(Party::Evaluator, &output_zero_labels).unwrap();
+        let res = prot
+            .finalize(Party::Evaluator, &output_zero_labels)
+            .unwrap();
         assert_eq!(res, expected_res);
         handle.join().unwrap();
     }
@@ -461,7 +465,9 @@ mod tests {
             .compute(Party::Evaluator, &mut rng, &circ, &input, &key)
             .unwrap();
 
-        let res = prot.finalize(Party::Evaluator, &output_zero_labels).unwrap();
+        let res = prot
+            .finalize(Party::Evaluator, &output_zero_labels)
+            .unwrap();
         let res = res
             .into_iter()
             .map(|i| (i as u8).to_string())
@@ -550,7 +556,9 @@ mod tests {
         // let indicator = Some(map);
 
         let mut prot = TwopcProtocol::new(receiver, Party::Evaluator, &mut rng);
-        let output_zero_labels = prot.compute(Party::Evaluator, &mut rng, &circ, &m1, &m2).unwrap();
+        let output_zero_labels = prot
+            .compute(Party::Evaluator, &mut rng, &circ, &m1, &m2)
+            .unwrap();
 
         let out_labels = prot
             .composite(

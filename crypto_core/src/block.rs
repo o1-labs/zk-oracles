@@ -86,7 +86,6 @@ impl Block {
         bytes[..16].clone_from_slice(&bytes_slice[..16]);
         Some(Block::from(bytes))
     }
-
 }
 
 impl Default for Block {

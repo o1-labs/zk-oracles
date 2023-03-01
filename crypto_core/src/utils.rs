@@ -73,7 +73,6 @@ pub fn and_inplace(a: &mut [u8], b: &[u8]) {
     }
 }
 
-
 /// Fast matrix transpose
 #[inline]
 pub fn transpose(m: &[u8], nrows: usize, ncols: usize) -> Vec<u8> {

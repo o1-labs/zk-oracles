@@ -20,9 +20,9 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
             .unwrap();
         let res = prot.finalize(Party::Garbler, &output_zero_labels).unwrap();
         let res = res
-        .into_iter()
-        .map(|i| (i as u8).to_string())
-        .collect::<String>();
+            .into_iter()
+            .map(|i| (i as u8).to_string())
+            .collect::<String>();
         let msg = input
             .into_iter()
             .map(|i| (i as u8).to_string())
@@ -43,7 +43,9 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
         let output_zero_labels = prot
             .compute(Party::Evaluator, &mut rng, &circ, &input, &key)
             .unwrap();
-        let res = prot.finalize(Party::Evaluator, &output_zero_labels).unwrap();
+        let res = prot
+            .finalize(Party::Evaluator, &output_zero_labels)
+            .unwrap();
         let res = res
             .into_iter()
             .map(|i| (i as u8).to_string())
