@@ -4,10 +4,10 @@ use crypto_core::{AbstractChannel, Block};
 use rand::{CryptoRng, Rng};
 
 use crate::{
-    encode, receive_decode_info, receive_gc_table, receive_wirelabels, send_decode_info,
-    send_gc_table, send_wirelabels, COReceiver, COSender, CotReceiver, CotSender, GCEvaluator,
-    GCGenerator, GarbledCircuitTable, HalfGateEvaluator, HalfGateGenerator, KOSReceiver, KOSSender,
-    OutputDecodeInfo, WireLabel,
+    encode, receive_decode_info, receive_gc_table, receive_masked_data, receive_wirelabels,
+    send_decode_info, send_gc_table, send_masked_data, send_wirelabels, COReceiver, COSender,
+    CotReceiver, CotSender, GCEvaluator, GCGenerator, GarbledCircuitTable, HalfGateEvaluator,
+    HalfGateGenerator, KOSReceiver, KOSSender, OutputDecodeInfo, WireLabel,
 };
 
 use circuit::CircuitInput;
@@ -129,6 +129,8 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                     *public_one_label = gc.gc_table.public_one_label;
                     send_gc_table(channel, &gc.gc_table).unwrap();
                     channel.flush().unwrap();
+                    send_masked_data(channel, &masked_data).unwrap();
+                    channel.flush().unwrap();
 
                     res = gc.output_zero_labels;
                     return Ok((res, masked_data));
@@ -165,9 +167,13 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                     receive_gc_table(channel, &mut gc_table).unwrap();
                     *public_one_label = gc_table.public_one_label;
 
+                    let mut masked_data = data_to_mask.clone();
+
+                    receive_masked_data(channel, &mut masked_data)?;
+
                     res = eva.eval(circ, &gc_table, &input_wirelabels).unwrap();
 
-                    return Ok((res, None));
+                    return Ok((res, masked_data));
                 }
             }
         }
