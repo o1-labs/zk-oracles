@@ -27,7 +27,6 @@ pub enum GCParty {
 
 pub struct TwopcProtocol<C: AbstractChannel> {
     channel: C,
-    party: Party,
     delta: Block,
     gc_party: GCParty,
     public_one_label: Block,
@@ -44,7 +43,6 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                 let public_one_label = Block::default();
                 Self {
                     channel,
-                    party,
                     delta,
                     gc_party,
                     public_one_label,
@@ -57,7 +55,6 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                 let public_one_label = Block::default();
                 Self {
                     channel,
-                    party,
                     delta,
                     gc_party,
                     public_one_label,
