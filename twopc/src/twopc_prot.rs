@@ -26,11 +26,11 @@ pub enum GCParty {
 }
 
 pub struct TwopcProtocol<C: AbstractChannel> {
-    pub channel: C,
-    pub party: Party,
-    pub delta: Block,
-    pub gc_party: GCParty,
-    pub public_one_label: Block,
+    channel: C,
+    party: Party,
+    delta: Block,
+    gc_party: GCParty,
+    public_one_label: Block,
 }
 
 impl<C: AbstractChannel> TwopcProtocol<C> {
