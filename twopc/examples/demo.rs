@@ -12,7 +12,7 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
         for i in 0..circ.noutput_wires {
             data_to_mask.push(vec![(i as u128).into()]);
             data_to_mask.push(vec![(i as u128).into()]);
-        };
+        }
         data_to_mask
     });
 
@@ -26,13 +26,6 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
         let (output_zero_labels, _masked_data) = prot
             .compute(&mut rng, &circ, &input, &key, &data_to_mask)
             .unwrap();
-        if let Some(masked_data) = _masked_data {
-            for (i, data) in masked_data.iter().enumerate() {
-                for block in data.iter() {
-                    println!("masked_data[{}][{}] = {:?}", i / 2, i % 2, block)
-                }
-            }
-        }
         let res = prot.finalize(&output_zero_labels).unwrap();
         let res = res
             .into_iter()
@@ -62,13 +55,25 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
                 .map(|blocks| blocks.into_iter().map(|_| Block::default()).collect())
                 .collect()
         });
-        let (output_zero_labels, _masked_data) = prot
+        let (output_zero_labels, masked_data) = prot
             .compute(&mut rng, &circ, &input, &key, &data_to_mask)
             .unwrap();
-        if let Some(masked_data) = _masked_data {
-            for (i, data) in masked_data.iter().enumerate() {
+        let unmasked_data: Option<Vec<Vec<Block>>> = masked_data.map(|masked_data| {
+            masked_data
+                .into_iter()
+                .enumerate()
+                .map(|(i, blocks)| {
+                    blocks
+                        .into_iter()
+                        .map(|block| block ^ output_zero_labels[i / 2].label)
+                        .collect()
+                })
+                .collect()
+        });
+        if let Some(unmasked_data) = unmasked_data.as_ref() {
+            for (i, data) in unmasked_data.iter().enumerate() {
                 for block in data.iter() {
-                    println!("masked_data[{}][{}] = {:?}", i / 2, i % 2, block)
+                    println!("unmasked_data[{}][{}] = {:?}", i / 2, i % 2, block)
                 }
             }
         }
