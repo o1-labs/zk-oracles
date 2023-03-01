@@ -20,7 +20,7 @@ pub enum Party {
 }
 
 #[derive(Clone)]
-pub enum GCParty {
+enum GCParty {
     GEN(HalfGateGenerator),
     EVA(HalfGateEvaluator),
 }
