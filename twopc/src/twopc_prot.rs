@@ -68,12 +68,12 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
         party: Party,
         rng: &mut R,
         circ: &Circuit,
-        input_alice: &[bool],
-        input_bob: &[bool],
+        input_garbler: &[bool],
+        input_evaluator: &[bool],
     ) -> Result<Vec<WireLabel>> {
         let mut res = Vec::<WireLabel>::new();
-        let alice_len = input_alice.len();
-        let bob_len = input_bob.len();
+        let garbler_len = input_garbler.len();
+        let evaluator_len = input_evaluator.len();
 
         let TwopcProtocol {
             channel,
@@ -87,25 +87,25 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                 let mut kosot = KOSSender::new(COReceiver);
                 kosot.send_init_with_delta(channel, rng, *delta).unwrap();
 
-                let bob_input_blks = kosot.send(channel, rng, bob_len).unwrap();
-                let bob_input_zero_blks = bob_input_blks
+                let evaluator_input_blks = kosot.send(channel, rng, evaluator_len).unwrap();
+                let evaluator_input_zero_blks = evaluator_input_blks
                     .into_iter()
                     .map(|(x, _)| x)
                     .collect::<Vec<Block>>();
 
-                let alice_input_zero_blks = (0..alice_len)
+                let garbler_input_zero_blks = (0..garbler_len)
                     .into_iter()
                     .map(|_| rng.gen::<Block>())
                     .collect::<Vec<Block>>();
 
-                let input_zero_blks = [alice_input_zero_blks, bob_input_zero_blks].concat();
+                let input_zero_blks = [garbler_input_zero_blks, evaluator_input_zero_blks].concat();
 
                 let input_zero_labels = (0..circ.ninput_wires)
                     .zip(input_zero_blks)
                     .map(|(id, label)| WireLabel { id, label })
                     .collect::<Vec<WireLabel>>();
 
-                let input: Vec<CircuitInput> = input_alice
+                let input: Vec<CircuitInput> = input_garbler
                     .iter()
                     .enumerate()
                     .map(|(id, value)| CircuitInput {
@@ -114,12 +114,12 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                     })
                     .collect();
 
-                let alice_wirelabels = encode(
-                    &input_zero_labels[0..input_alice.len()].to_vec(),
+                let garbler_wirelabels = encode(
+                    &input_zero_labels[0..input_garbler.len()].to_vec(),
                     &input,
                     *delta,
                 );
-                send_wirelabels(channel, &alice_wirelabels).unwrap();
+                send_wirelabels(channel, &garbler_wirelabels).unwrap();
                 channel.flush().unwrap();
 
                 match gc_party {
@@ -141,26 +141,26 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                 let mut kosot = KOSReceiver::new(COSender);
                 kosot.receive_init(channel, rng).unwrap();
 
-                let bob_input_blks = kosot.receive(channel, &input_bob, rng).unwrap();
+                let evaluator_input_blks = kosot.receive(channel, &input_evaluator, rng).unwrap();
 
-                let bob_wirelabels = (alice_len..alice_len + bob_len)
-                    .zip(bob_input_blks)
+                let evaluator_wirelabels = (garbler_len..garbler_len + evaluator_len)
+                    .zip(evaluator_input_blks)
                     .map(|(id, label)| WireLabel { id, label })
                     .collect::<Vec<WireLabel>>();
 
-                let mut alice_wirelabels = vec![
+                let mut garbler_wirelabels = vec![
                     WireLabel {
                         id: 0,
                         label: Block::default()
                     };
-                    alice_len
+                    garbler_len
                 ];
 
-                receive_wirelabels(channel, &mut alice_wirelabels).unwrap();
+                receive_wirelabels(channel, &mut garbler_wirelabels).unwrap();
 
                 match gc_party {
                     GCParty::EVA(eva) => {
-                        let input_wirelabels = [alice_wirelabels, bob_wirelabels].concat();
+                        let input_wirelabels = [garbler_wirelabels, evaluator_wirelabels].concat();
                         let mut gc_table = GarbledCircuitTable::new(
                             vec![[Block::default(); 2]; circ.nand],
                             Block::default(),
