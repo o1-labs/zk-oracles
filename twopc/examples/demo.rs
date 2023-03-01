@@ -1,12 +1,13 @@
 use std::net::TcpStream;
 
 use circuit::Circuit;
-use crypto_core::{AesRng, CommandLineOpt, NetChannel};
+use crypto_core::{AesRng, Block, CommandLineOpt, NetChannel};
 use structopt::StructOpt;
 use twopc::twopc_prot::*;
 
 fn demo(netio: NetChannel<TcpStream, TcpStream>) {
     let circ = Circuit::load("circuit/circuit_files/bristol/aes_128.txt").unwrap();
+    let data_to_mask = None;
 
     if netio.is_server() {
         let input = vec![true; 128];
@@ -15,7 +16,6 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
         let mut rng = AesRng::new();
         let mut prot =
             TwopcProtocol::<NetChannel<TcpStream, TcpStream>>::new(netio, Party::Garbler, &mut rng);
-        let data_to_mask = None;
         let (output_zero_labels, _masked_data) = prot
             .compute(&mut rng, &circ, &input, &key, &data_to_mask)
             .unwrap();
@@ -41,8 +41,16 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
 
         let mut rng = AesRng::new();
         let mut prot = TwopcProtocol::new(netio, Party::Evaluator, &mut rng);
-        let (output_zero_labels, _masked_data) =
-            prot.compute(&mut rng, &circ, &input, &key, &None).unwrap();
+        /* Zero out the data, to make sure we're not cheating */
+        let data_to_mask = data_to_mask.map(|data_to_mask| {
+            data_to_mask
+                .into_iter()
+                .map(|blocks| blocks.into_iter().map(|_| Block::default()).collect())
+                .collect()
+        });
+        let (output_zero_labels, _masked_data) = prot
+            .compute(&mut rng, &circ, &input, &key, &data_to_mask)
+            .unwrap();
         let res = prot.finalize(&output_zero_labels).unwrap();
         let res = res
             .into_iter()
