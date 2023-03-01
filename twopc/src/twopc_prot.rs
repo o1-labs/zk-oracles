@@ -217,6 +217,13 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
         let input_wires_len = input_wires.len();
         let mut composed_input_wires = Vec::<WireLabel>::new();
 
+        let TwopcProtocol {
+            channel,
+            delta,
+            gc_party,
+            public_one_label,
+        } = &mut (*self);
+
         match party {
             Party::Garbler => {
                 for wire in input_wires {
@@ -247,18 +254,16 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                             &composed_input_wires[input_wires_len..input_wires_len + input_len]
                                 .to_vec(),
                             &c_input,
-                            self.delta,
+                            *delta,
                         );
-                        send_wirelabels(&mut self.channel, &input_wirelabels).unwrap();
+                        send_wirelabels(channel, &input_wirelabels).unwrap();
                     }
 
                     Party::Evaluator => {
                         let mut kosot = KOSSender::new(COReceiver);
-                        kosot
-                            .send_init_with_delta(&mut self.channel, rng, self.delta)
-                            .unwrap();
+                        kosot.send_init_with_delta(channel, rng, *delta).unwrap();
 
-                        let input_blks = kosot.send(&mut self.channel, rng, input_len).unwrap();
+                        let input_blks = kosot.send(channel, rng, input_len).unwrap();
                         let input_zero_blks = input_blks
                             .into_iter()
                             .map(|(x, _)| x)
@@ -273,15 +278,14 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                     }
                 }
 
-                let gc_party = self.gc_party.clone();
                 match gc_party {
-                    GCParty::GEN(mut gen) => {
+                    GCParty::GEN(gen) => {
                         let gc = gen
-                            .compose(circ, &composed_input_wires, self.public_one_label)
+                            .compose(circ, &composed_input_wires, *public_one_label)
                             .unwrap();
 
-                        send_gc_table(&mut self.channel, &gc.gc_table).unwrap();
-                        self.channel.flush().unwrap();
+                        send_gc_table(channel, &gc.gc_table).unwrap();
+                        channel.flush().unwrap();
 
                         res = gc.output_zero_labels;
                         return Ok(res);
@@ -308,7 +312,7 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                             };
                             input_len
                         ];
-                        receive_wirelabels(&mut self.channel, &mut input_wirelabels).unwrap();
+                        receive_wirelabels(channel, &mut input_wirelabels).unwrap();
 
                         for i in input_wirelabels {
                             composed_input_wires.push(i);
@@ -316,9 +320,9 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                     }
                     Party::Evaluator => {
                         let mut kosot = KOSReceiver::new(COSender);
-                        kosot.receive_init(&mut self.channel, rng).unwrap();
+                        kosot.receive_init(channel, rng).unwrap();
 
-                        let input_blks = kosot.receive(&mut self.channel, &input, rng).unwrap();
+                        let input_blks = kosot.receive(channel, &input, rng).unwrap();
                         for i in input_wires_len..input_wires_len + input_len {
                             composed_input_wires.push(WireLabel {
                                 id: i,
@@ -327,15 +331,14 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                         }
                     }
                 }
-                let gc_party = self.gc_party.clone();
                 match gc_party {
-                    GCParty::EVA(mut eva) => {
+                    GCParty::EVA(eva) => {
                         let mut gc_table = GarbledCircuitTable::new(
                             vec![[Block::default(); 2]; circ.nand],
                             Block::default(),
                         );
 
-                        receive_gc_table(&mut self.channel, &mut gc_table).unwrap();
+                        receive_gc_table(channel, &mut gc_table).unwrap();
                         let ind = indicator.clone();
                         res = eva
                             .compose(circ, &gc_table, &composed_input_wires, &Some(ind))
