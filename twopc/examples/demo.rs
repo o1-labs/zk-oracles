@@ -1,5 +1,9 @@
 use std::net::TcpStream;
 
+use ark_ec::{AffineCurve, ProjectiveCurve};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use mina_curves::pasta::curves::vesta::Vesta;
+
 use circuit::Circuit;
 use crypto_core::{AesRng, Block, CommandLineOpt, NetChannel};
 use structopt::StructOpt;
@@ -10,8 +14,22 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
     let data_to_mask = Some({
         let mut data_to_mask = Vec::with_capacity(2 * circ.noutput_wires);
         for i in 0..circ.noutput_wires {
-            data_to_mask.push(vec![(i as u128).into()]);
-            data_to_mask.push(vec![(i as u128).into()]);
+            let generator = Vesta::prime_subgroup_generator();
+            let scalar = <Vesta as AffineCurve>::ScalarField::from((i+1) as u64);
+            let curve_point = generator.mul(scalar).into_affine();
+            if netio.is_server() {
+                println!("res: {}", curve_point);
+            }
+            let x = curve_point.x;
+            let y = curve_point.y;
+            let mut bytes: Vec<u8> = vec![];
+            (x, y).serialize(&mut bytes).unwrap();
+            let data: Vec<Block> = bytes
+                .chunks(16)
+                .map(|chunk| Block::try_from_slice(chunk).unwrap())
+                .collect();
+            data_to_mask.push(data.clone());
+            data_to_mask.push(data);
         }
         data_to_mask
     });
@@ -72,8 +90,36 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
         });
         if let Some(unmasked_data) = unmasked_data.as_ref() {
             for (i, data) in unmasked_data.iter().enumerate() {
-                for block in data.iter() {
-                    println!("unmasked_data[{}][{}] = {:?}", i / 2, i % 2, block)
+                let mut bytes = vec![];
+                for (j, block) in data.iter().enumerate() {
+                    bytes.extend(block.as_ref().into_iter().map(|x| x.clone()));
+                    //println!("unmasked_data[{}][{}][{}] = {:?}", i / 2, i % 2, j, block)
+                }
+                let de: Result<
+                    (
+                        <Vesta as AffineCurve>::BaseField,
+                        <Vesta as AffineCurve>::BaseField,
+                    ),
+                    _,
+                > = CanonicalDeserialize::deserialize(&bytes[..]);
+                let res = {
+                    match de {
+                        Ok((x, y)) => {
+                            /* NB: This will need to be new_unchecked once we upgrade arkworks. */
+                            let curve_point = Vesta::new(x, y, false);
+                            if curve_point.is_on_curve()
+                                && curve_point.is_in_correct_subgroup_assuming_on_curve()
+                            {
+                                Some(curve_point)
+                            } else {
+                                None
+                            }
+                        }
+                        Err(_) => None,
+                    }
+                };
+                if let Some(res) = res {
+                    println!("res: {}", res)
                 }
             }
         }
