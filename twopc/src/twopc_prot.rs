@@ -75,14 +75,19 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
         let alice_len = input_alice.len();
         let bob_len = input_bob.len();
 
+        let TwopcProtocol {
+            channel,
+            delta,
+            gc_party,
+            public_one_label,
+        } = &mut (*self);
+
         match party {
             Party::Garbler => {
                 let mut kosot = KOSSender::new(COReceiver);
-                kosot
-                    .send_init_with_delta(&mut self.channel, rng, self.delta)
-                    .unwrap();
+                kosot.send_init_with_delta(channel, rng, *delta).unwrap();
 
-                let bob_input_blks = kosot.send(&mut self.channel, rng, bob_len).unwrap();
+                let bob_input_blks = kosot.send(channel, rng, bob_len).unwrap();
                 let bob_input_zero_blks = bob_input_blks
                     .into_iter()
                     .map(|(x, _)| x)
@@ -112,18 +117,17 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                 let alice_wirelabels = encode(
                     &input_zero_labels[0..input_alice.len()].to_vec(),
                     &input,
-                    self.delta,
+                    *delta,
                 );
-                send_wirelabels(&mut self.channel, &alice_wirelabels).unwrap();
-                self.channel.flush().unwrap();
+                send_wirelabels(channel, &alice_wirelabels).unwrap();
+                channel.flush().unwrap();
 
-                let gc_party = self.gc_party.clone();
                 match gc_party {
-                    GCParty::GEN(mut gen) => {
+                    GCParty::GEN(gen) => {
                         let gc = gen.garble(rng, circ, &input_zero_labels).unwrap();
-                        self.public_one_label = gc.gc_table.public_one_label;
-                        send_gc_table(&mut self.channel, &gc.gc_table).unwrap();
-                        self.channel.flush().unwrap();
+                        *public_one_label = gc.gc_table.public_one_label;
+                        send_gc_table(channel, &gc.gc_table).unwrap();
+                        channel.flush().unwrap();
 
                         res = gc.output_zero_labels;
                         return Ok(res);
@@ -135,9 +139,9 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
             }
             Party::Evaluator => {
                 let mut kosot = KOSReceiver::new(COSender);
-                kosot.receive_init(&mut self.channel, rng).unwrap();
+                kosot.receive_init(channel, rng).unwrap();
 
-                let bob_input_blks = kosot.receive(&mut self.channel, &input_bob, rng).unwrap();
+                let bob_input_blks = kosot.receive(channel, &input_bob, rng).unwrap();
 
                 let bob_wirelabels = (alice_len..alice_len + bob_len)
                     .zip(bob_input_blks)
@@ -152,19 +156,18 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                     alice_len
                 ];
 
-                receive_wirelabels(&mut self.channel, &mut alice_wirelabels).unwrap();
+                receive_wirelabels(channel, &mut alice_wirelabels).unwrap();
 
-                let gc_party = self.gc_party.clone();
                 match gc_party {
-                    GCParty::EVA(mut eva) => {
+                    GCParty::EVA(eva) => {
                         let input_wirelabels = [alice_wirelabels, bob_wirelabels].concat();
                         let mut gc_table = GarbledCircuitTable::new(
                             vec![[Block::default(); 2]; circ.nand],
                             Block::default(),
                         );
 
-                        receive_gc_table(&mut self.channel, &mut gc_table).unwrap();
-                        self.public_one_label = gc_table.public_one_label;
+                        receive_gc_table(channel, &mut gc_table).unwrap();
+                        *public_one_label = gc_table.public_one_label;
 
                         res = eva.eval(circ, &gc_table, &input_wirelabels).unwrap();
 
