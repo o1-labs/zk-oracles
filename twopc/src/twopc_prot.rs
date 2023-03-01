@@ -204,7 +204,6 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
 
     pub fn composite<R: Rng + CryptoRng>(
         &mut self,
-        party: Party,
         rng: &mut R,
         circ: &Circuit,
         input_wires: &Vec<WireLabel>,
@@ -212,7 +211,7 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
         input_party: Party,
         indicator: &HashMap<usize, usize>,
     ) -> Result<Vec<WireLabel>> {
-        let mut res = Vec::<WireLabel>::new();
+        let res;
         let input_len = input.len();
         let input_wires_len = input_wires.len();
         let mut composed_input_wires = Vec::<WireLabel>::new();
@@ -224,8 +223,8 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
             public_one_label,
         } = &mut (*self);
 
-        match party {
-            Party::Garbler => {
+        match gc_party {
+            GCParty::GEN(gen) => {
                 for wire in input_wires {
                     composed_input_wires.push(WireLabel {
                         id: *indicator.get(&wire.id).unwrap(),
@@ -278,24 +277,19 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                     }
                 }
 
-                match gc_party {
-                    GCParty::GEN(gen) => {
-                        let gc = gen
-                            .compose(circ, &composed_input_wires, *public_one_label)
-                            .unwrap();
+                {
+                    let gc = gen
+                        .compose(circ, &composed_input_wires, *public_one_label)
+                        .unwrap();
 
-                        send_gc_table(channel, &gc.gc_table).unwrap();
-                        channel.flush().unwrap();
+                    send_gc_table(channel, &gc.gc_table).unwrap();
+                    channel.flush().unwrap();
 
-                        res = gc.output_zero_labels;
-                        return Ok(res);
-                    }
-                    _ => {
-                        return Ok(res);
-                    }
+                    res = gc.output_zero_labels;
+                    return Ok(res);
                 }
             }
-            Party::Evaluator => {
+            GCParty::EVA(eva) => {
                 for wire in input_wires {
                     composed_input_wires.push(WireLabel {
                         id: wire.id,
@@ -331,27 +325,21 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
                         }
                     }
                 }
-                match gc_party {
-                    GCParty::EVA(eva) => {
-                        let mut gc_table = GarbledCircuitTable::new(
-                            vec![[Block::default(); 2]; circ.nand],
-                            Block::default(),
-                        );
+                {
+                    let mut gc_table = GarbledCircuitTable::new(
+                        vec![[Block::default(); 2]; circ.nand],
+                        Block::default(),
+                    );
 
-                        receive_gc_table(channel, &mut gc_table).unwrap();
-                        let ind = indicator.clone();
-                        res = eva
-                            .compose(circ, &gc_table, &composed_input_wires, &Some(ind))
-                            .unwrap();
+                    receive_gc_table(channel, &mut gc_table).unwrap();
+                    let ind = indicator.clone();
+                    res = eva
+                        .compose(circ, &gc_table, &composed_input_wires, &Some(ind))
+                        .unwrap();
 
-                        // res = eva.eval(circ, &gc_table, &composed_input_wires).unwrap();
+                    // res = eva.eval(circ, &gc_table, &composed_input_wires).unwrap();
 
-                        return Ok(res);
-                    }
-
-                    _ => {
-                        return Ok(res);
-                    }
+                    return Ok(res);
                 }
             }
         }
@@ -490,7 +478,6 @@ mod tests {
 
             let out_labels = prot
                 .composite(
-                    Party::Garbler,
                     &mut rng,
                     &circ,
                     &output_zero_labels,
@@ -526,7 +513,6 @@ mod tests {
 
         let out_labels = prot
             .composite(
-                Party::Evaluator,
                 &mut rng,
                 &circ,
                 &output_zero_labels,
