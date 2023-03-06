@@ -1,13 +1,17 @@
 use std::net::TcpStream;
 
-use ark_ec::{AffineCurve, ProjectiveCurve};
+use ark_ec::AffineCurve;
+use ark_poly::{EvaluationDomain, Radix2EvaluationDomain as D};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use mina_curves::pasta::curves::vesta::{Vesta, VestaParameters};
+use poly_commitment::srs::SRS;
 
 use circuit::Circuit;
 use crypto_core::{AesRng, Block, CommandLineOpt, NetChannel};
 use structopt::StructOpt;
 use twopc::twopc_prot::*;
+
+type ScalarField = <Vesta as AffineCurve>::ScalarField;
 
 fn affine_to_bytes(
     curve_point: ark_ec::short_weierstrass_jacobian::GroupAffine<VestaParameters>,
@@ -26,16 +30,27 @@ fn affine_to_bytes(
 fn demo(netio: NetChannel<TcpStream, TcpStream>) {
     let circ = Circuit::load("circuit/circuit_files/bristol/aes_128.txt").unwrap();
 
+    let n = 1 << 7;
+    let mut srs = SRS::<Vesta>::create(n);
+    let domain = {
+        let n = D::<ScalarField>::compute_size_of_domain(n).unwrap();
+        D::<ScalarField>::new(n).unwrap()
+    };
+    srs.add_lagrange_basis(domain);
+
     if netio.is_server() {
         let input = vec![true; 128];
         let key = vec![false; 128]; // the value here is not important, could be anything.
 
         let data_to_mask = Some({
+            let computed_lagrange_commitments = srs.lagrange_bases.get(&domain.size()).unwrap();
             let mut data_to_mask = Vec::with_capacity(2 * circ.noutput_wires);
             for i in 0..circ.noutput_wires {
-                let generator = Vesta::prime_subgroup_generator();
-                let scalar = <Vesta as AffineCurve>::ScalarField::from((i + 1) as u64);
-                let curve_point = generator.mul(scalar).into_affine();
+                let lagrange_point = computed_lagrange_commitments[i / 8].clone();
+                let scalar = ((1 << (i % 8)) as u64).into();
+                let commitment = lagrange_point.scale(scalar);
+                // Assume no chunking for now
+                let curve_point = commitment.unshifted[0];
                 println!("res: {}", curve_point);
                 let data = affine_to_bytes(curve_point);
                 data_to_mask.push(data.clone());
