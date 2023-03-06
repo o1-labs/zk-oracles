@@ -25,8 +25,12 @@ fn affine_to_bytes(
 
 fn demo(netio: NetChannel<TcpStream, TcpStream>) {
     let circ = Circuit::load("circuit/circuit_files/bristol/aes_128.txt").unwrap();
-    let data_to_mask = if netio.is_server() {
-        Some({
+
+    if netio.is_server() {
+        let input = vec![true; 128];
+        let key = vec![false; 128]; // the value here is not important, could be anything.
+
+        let data_to_mask = Some({
             let mut data_to_mask = Vec::with_capacity(2 * circ.noutput_wires);
             for i in 0..circ.noutput_wires {
                 let generator = Vesta::prime_subgroup_generator();
@@ -38,16 +42,7 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
                 data_to_mask.push(data);
             }
             data_to_mask
-        })
-    } else {
-        let generator = Vesta::prime_subgroup_generator();
-        let data = affine_to_bytes(generator);
-        Some(vec![data; 2 * circ.noutput_wires])
-    };
-
-    if netio.is_server() {
-        let input = vec![true; 128];
-        let key = vec![false; 128]; // the value here is not important, could be anything.
+        });
 
         let mut rng = AesRng::new();
         let mut prot =
@@ -74,6 +69,13 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
     } else {
         let input = vec![false; 128]; // the value here is not important, could be anything.
         let key = vec![false; 128];
+
+        // the value here is not important, could be anything.
+        let data_to_mask = {
+            let generator = Vesta::prime_subgroup_generator();
+            let data = affine_to_bytes(generator);
+            Some(vec![data; 2 * circ.noutput_wires])
+        };
 
         let mut rng = AesRng::new();
         let mut prot = TwopcProtocol::new(netio, Party::Evaluator, &mut rng);
