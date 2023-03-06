@@ -42,15 +42,25 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
         let input = vec![true; 128];
         let key = vec![false; 128]; // the value here is not important, could be anything.
 
-        let data_to_mask = Some({
+        let mut rng = AesRng::new();
+
+        let blinded_commitments = {
             let computed_lagrange_commitments = srs.lagrange_bases.get(&domain.size()).unwrap();
-            let mut data_to_mask = Vec::with_capacity(2 * circ.noutput_wires);
+            let mut res = Vec::with_capacity(circ.noutput_wires);
             for i in 0..circ.noutput_wires {
                 let lagrange_point = computed_lagrange_commitments[i / 8].clone();
                 let scalar = ((1 << (i % 8)) as u64).into();
-                let commitment = lagrange_point.scale(scalar);
+                let commitment = srs.mask(lagrange_point.scale(scalar), &mut rng);
+                res.push(commitment);
+            }
+            res
+        };
+
+        let data_to_mask = Some({
+            let mut data_to_mask = Vec::with_capacity(2 * circ.noutput_wires);
+            for commitment in blinded_commitments.iter() {
                 // Assume no chunking for now
-                let curve_point = commitment.unshifted[0];
+                let curve_point = commitment.commitment.unshifted[0];
                 println!("res: {}", curve_point);
                 let data = affine_to_bytes(curve_point);
                 data_to_mask.push(data.clone());
@@ -58,8 +68,6 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
             }
             data_to_mask
         });
-
-        let mut rng = AesRng::new();
         let mut prot =
             TwopcProtocol::<NetChannel<TcpStream, TcpStream>>::new(netio, Party::Garbler, &mut rng);
         let (output_zero_labels, _masked_data) = prot
