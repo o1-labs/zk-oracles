@@ -28,6 +28,34 @@ fn affine_to_bytes(
     data
 }
 
+fn bytes_to_affine(
+    data: &Vec<Block>,
+) -> Option<ark_ec::short_weierstrass_jacobian::GroupAffine<VestaParameters>> {
+    let mut bytes = vec![];
+    for block in data.iter() {
+        bytes.extend(block.as_ref().into_iter().map(|x| x.clone()));
+    }
+    let de: Result<
+        (
+            <Vesta as AffineCurve>::BaseField,
+            <Vesta as AffineCurve>::BaseField,
+        ),
+        _,
+    > = CanonicalDeserialize::deserialize(&bytes[..]);
+    match de {
+        Ok((x, y)) => {
+            /* NB: This will need to be new_unchecked once we upgrade arkworks. */
+            let curve_point = Vesta::new(x, y, false);
+            if curve_point.is_on_curve() && curve_point.is_in_correct_subgroup_assuming_on_curve() {
+                Some(curve_point)
+            } else {
+                None
+            }
+        }
+        Err(_) => None,
+    }
+}
+
 fn demo(netio: NetChannel<TcpStream, TcpStream>) {
     let circ = Circuit::load("circuit/circuit_files/bristol/aes_128.txt").unwrap();
 
@@ -128,33 +156,7 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
         });
         if let Some(unmasked_data) = unmasked_data.as_ref() {
             for data in unmasked_data.iter() {
-                let mut bytes = vec![];
-                for block in data.iter() {
-                    bytes.extend(block.as_ref().into_iter().map(|x| x.clone()));
-                }
-                let de: Result<
-                    (
-                        <Vesta as AffineCurve>::BaseField,
-                        <Vesta as AffineCurve>::BaseField,
-                    ),
-                    _,
-                > = CanonicalDeserialize::deserialize(&bytes[..]);
-                let res = {
-                    match de {
-                        Ok((x, y)) => {
-                            /* NB: This will need to be new_unchecked once we upgrade arkworks. */
-                            let curve_point = Vesta::new(x, y, false);
-                            if curve_point.is_on_curve()
-                                && curve_point.is_in_correct_subgroup_assuming_on_curve()
-                            {
-                                Some(curve_point)
-                            } else {
-                                None
-                            }
-                        }
-                        Err(_) => None,
-                    }
-                };
+                let res = bytes_to_affine(data);
                 if let Some(res) = res {
                     println!("res: {}", res)
                 }
