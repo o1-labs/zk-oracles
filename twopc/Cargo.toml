@@ -11,9 +11,9 @@ edition = "2021"
 crypto_core = {path = "../crypto_core"}
 circuit = {path = "../circuit"}
 thiserror = "1.0.32"
-rand = "0.7"
-rand_core = "0.5"
-curve25519-dalek = "3"
+rand = "0.8.0"
+rand_core = { version = "0.6.0" }
+curve25519-dalek = {version = "4.0.0-rc.1", features = ["rand_core"]}
 sha2 = "0.10.6"
 
 [dev-dependencies]
