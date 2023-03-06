@@ -1,18 +1,60 @@
 use std::net::TcpStream;
 
 use ark_ec::{AffineCurve, ProjectiveCurve};
-use ark_ff::{UniformRand, Zero};
+use ark_ff::{Field, UniformRand, Zero};
 use ark_poly::{EvaluationDomain, Radix2EvaluationDomain as D};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use mina_curves::pasta::curves::vesta::{Vesta, VestaParameters};
 use poly_commitment::srs::SRS;
 
 use circuit::Circuit;
-use crypto_core::{AesRng, Block, CommandLineOpt, NetChannel};
+use crypto_core::{AbstractChannel, AesRng, Block, CommandLineOpt, NetChannel};
 use structopt::StructOpt;
 use twopc::twopc_prot::*;
 
 type ScalarField = <Vesta as AffineCurve>::ScalarField;
+
+fn scalar_field_to_bytes(
+    x: ScalarField,
+) -> Vec<Block> {
+    let mut bytes: Vec<u8> = vec![];
+    x.serialize(&mut bytes).unwrap();
+    let data: Vec<Block> = bytes
+        .chunks(16)
+        .map(|chunk| Block::try_from_slice(chunk).unwrap())
+        .collect();
+    data
+}
+
+fn bytes_to_scalar_field(
+    data: &Vec<Block>
+) -> ScalarField {
+    let mut bytes = vec![];
+    for block in data.iter() {
+        bytes.extend(block.as_ref().into_iter().map(|x| x.clone()));
+    }
+    CanonicalDeserialize::deserialize(&bytes[..]).unwrap()
+}
+
+fn send_scalar_field<C: AbstractChannel>(
+    channel: &mut C,
+    x: ScalarField,
+) {
+    let data = scalar_field_to_bytes(x);
+    for block in data.iter() {
+        channel.write_block(&block).unwrap();
+    }
+}
+
+fn receive_scalar_field<C: AbstractChannel>(
+    channel: &mut C,
+) -> ScalarField {
+    let mut data = scalar_field_to_bytes(ScalarField::zero());
+    for block in data.iter_mut() {
+        *block = channel.read_block().unwrap();
+    }
+    bytes_to_scalar_field(&data)
+}
 
 fn affine_to_bytes(
     curve_point: ark_ec::short_weierstrass_jacobian::GroupAffine<VestaParameters>,
@@ -56,6 +98,26 @@ fn bytes_to_affine(
     }
 }
 
+fn send_curve_point<C: AbstractChannel>(
+    channel: &mut C,
+    curve_point: ark_ec::short_weierstrass_jacobian::GroupAffine<VestaParameters>,
+) {
+    let data = affine_to_bytes(curve_point);
+    for block in data.iter() {
+        channel.write_block(&block).unwrap();
+    }
+}
+
+fn receive_curve_point<C: AbstractChannel>(
+    channel: &mut C,
+) -> ark_ec::short_weierstrass_jacobian::GroupAffine<VestaParameters> {
+    let mut data = affine_to_bytes(Vesta::prime_subgroup_generator());
+    for block in data.iter_mut() {
+        *block = channel.read_block().unwrap();
+    }
+    bytes_to_affine(&data).expect("to get a valid curve point")
+}
+
 fn demo(netio: NetChannel<TcpStream, TcpStream>) {
     let circ = Circuit::load("circuit/circuit_files/bristol/aes_128.txt").unwrap();
 
@@ -97,9 +159,7 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
                 let blinder = commitment.blinders.unshifted[0];
                 total_blinder += blinder;
                 let zero_curve_point = srs.h.mul(blinder).into_affine();
-                println!("res: {}", zero_curve_point);
                 let one_curve_point = commitment.commitment.unshifted[0];
-                println!("res: {}", one_curve_point);
                 data_to_mask.push(affine_to_bytes(zero_curve_point));
                 data_to_mask.push(affine_to_bytes(one_curve_point));
             }
@@ -110,7 +170,23 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
         let (output_zero_labels, _masked_data) = prot
             .compute(&mut rng, &circ, &input, &key, &data_to_mask)
             .unwrap();
+
+        // Receive the blinded commitment from the evaluator
+        let mut blinded_commitment = receive_curve_point(prot.channel()).into_projective();
+        // Remove the blindings from the individual commitments
+        blinded_commitment -= srs.h.mul(total_blinder);
+        // Remove the scaled blinding
+        blinded_commitment = blinded_commitment
+            .into_affine()
+            .mul(scale_blinder.inverse().unwrap());
+        // Send the now-unhidden commitment and the scaling blinder
+        send_curve_point(prot.channel(), blinded_commitment.into_affine());
+        prot.channel().flush().unwrap();
+        send_scalar_field(prot.channel(), scale_blinder);
+        prot.channel().flush().unwrap();
+
         let res = prot.finalize(&output_zero_labels).unwrap();
+
         let res = res
             .into_iter()
             .map(|i| (i as u8).to_string())
@@ -167,15 +243,44 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
                     let res = bytes_to_affine(data);
                     if let Some(res) = res {
                         commitment += &res;
-                        println!("res: {}", res)
                     }
                 }
             }
             commitment
         };
-        println!("blinded_commitment: {}", blinded_commitment);
+
+        // Send the blinding commitment for unblinding.
+        send_curve_point(prot.channel(), blinded_commitment);
+        prot.channel().flush().unwrap();
+
+        // Receive the unblinded curve point and the scaling blinder.
+        let final_commitment = receive_curve_point(prot.channel());
+        let blinder_scale = receive_scalar_field(prot.channel());
+        random_blinder /= blinder_scale;
 
         let res = prot.finalize(&output_zero_labels).unwrap();
+
+        let res_fields: Vec<ScalarField> =
+            res.chunks(8).map(|chunk|
+                chunk.iter().enumerate().fold(0, |acc, (idx, i)| {
+                    acc + (1 << idx) * (*i as u8)
+                }).into()).collect();
+
+        let computed_commitment = {
+            // Doing this manually now, for debugging purposes
+            let mut acc = srs.h.mul(random_blinder).into_affine();
+            let computed_lagrange_commitments = srs.lagrange_bases.get(&domain.size()).unwrap();
+            for (i, res_field) in res_fields.into_iter().enumerate() {
+                let lagrange_point = computed_lagrange_commitments[i].clone();
+                acc += &lagrange_point.scale(res_field).unshifted[0];
+            }
+            acc
+        };
+
+        println!("Got final commitment: {}", final_commitment);
+        println!("Computed commitment: {}", computed_commitment);
+        assert_eq!(final_commitment, computed_commitment);
+
         let res = res
             .into_iter()
             .map(|i| (i as u8).to_string())
