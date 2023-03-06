@@ -154,14 +154,27 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
                 })
                 .collect()
         });
-        if let Some(unmasked_data) = unmasked_data.as_ref() {
-            for data in unmasked_data.iter() {
-                let res = bytes_to_affine(data);
-                if let Some(res) = res {
-                    println!("res: {}", res)
+
+        // A random blinder to protect against garbler commitment preimage attacks.
+        let mut random_blinder = ScalarField::rand(&mut rng);
+
+        let blinded_commitment = {
+            // Initialize the commitment with a random blinding
+            let mut commitment = srs.h.mul(random_blinder).into_affine();
+            // Integrate the now-unmasked commitments from the garbler.
+            if let Some(unmasked_data) = unmasked_data.as_ref() {
+                for data in unmasked_data.iter() {
+                    let res = bytes_to_affine(data);
+                    if let Some(res) = res {
+                        commitment += &res;
+                        println!("res: {}", res)
+                    }
                 }
             }
-        }
+            commitment
+        };
+        println!("blinded_commitment: {}", blinded_commitment);
+
         let res = prot.finalize(&output_zero_labels).unwrap();
         let res = res
             .into_iter()
