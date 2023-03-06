@@ -2,37 +2,48 @@ use std::net::TcpStream;
 
 use ark_ec::{AffineCurve, ProjectiveCurve};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use mina_curves::pasta::curves::vesta::Vesta;
+use mina_curves::pasta::curves::vesta::{Vesta, VestaParameters};
 
 use circuit::Circuit;
 use crypto_core::{AesRng, Block, CommandLineOpt, NetChannel};
 use structopt::StructOpt;
 use twopc::twopc_prot::*;
 
+fn affine_to_bytes(
+    curve_point: ark_ec::short_weierstrass_jacobian::GroupAffine<VestaParameters>,
+) -> Vec<Block> {
+    let x = curve_point.x;
+    let y = curve_point.y;
+    let mut bytes: Vec<u8> = vec![];
+    (x, y).serialize(&mut bytes).unwrap();
+    let data: Vec<Block> = bytes
+        .chunks(16)
+        .map(|chunk| Block::try_from_slice(chunk).unwrap())
+        .collect();
+    data
+}
+
 fn demo(netio: NetChannel<TcpStream, TcpStream>) {
     let circ = Circuit::load("circuit/circuit_files/bristol/aes_128.txt").unwrap();
-    let data_to_mask = Some({
-        let mut data_to_mask = Vec::with_capacity(2 * circ.noutput_wires);
-        for i in 0..circ.noutput_wires {
-            let generator = Vesta::prime_subgroup_generator();
-            let scalar = <Vesta as AffineCurve>::ScalarField::from((i+1) as u64);
-            let curve_point = generator.mul(scalar).into_affine();
-            if netio.is_server() {
+    let data_to_mask = if netio.is_server() {
+        Some({
+            let mut data_to_mask = Vec::with_capacity(2 * circ.noutput_wires);
+            for i in 0..circ.noutput_wires {
+                let generator = Vesta::prime_subgroup_generator();
+                let scalar = <Vesta as AffineCurve>::ScalarField::from((i + 1) as u64);
+                let curve_point = generator.mul(scalar).into_affine();
                 println!("res: {}", curve_point);
+                let data = affine_to_bytes(curve_point);
+                data_to_mask.push(data.clone());
+                data_to_mask.push(data);
             }
-            let x = curve_point.x;
-            let y = curve_point.y;
-            let mut bytes: Vec<u8> = vec![];
-            (x, y).serialize(&mut bytes).unwrap();
-            let data: Vec<Block> = bytes
-                .chunks(16)
-                .map(|chunk| Block::try_from_slice(chunk).unwrap())
-                .collect();
-            data_to_mask.push(data.clone());
-            data_to_mask.push(data);
-        }
-        data_to_mask
-    });
+            data_to_mask
+        })
+    } else {
+        let generator = Vesta::prime_subgroup_generator();
+        let data = affine_to_bytes(generator);
+        Some(vec![data; 2 * circ.noutput_wires])
+    };
 
     if netio.is_server() {
         let input = vec![true; 128];
