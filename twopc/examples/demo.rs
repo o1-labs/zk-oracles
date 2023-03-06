@@ -77,13 +77,6 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
 
         let mut rng = AesRng::new();
         let mut prot = TwopcProtocol::new(netio, Party::Evaluator, &mut rng);
-        /* Zero out the data, to make sure we're not cheating */
-        let data_to_mask = data_to_mask.map(|data_to_mask| {
-            data_to_mask
-                .into_iter()
-                .map(|blocks| blocks.into_iter().map(|_| Block::default()).collect())
-                .collect()
-        });
         let (output_zero_labels, masked_data) = prot
             .compute(&mut rng, &circ, &input, &key, &data_to_mask)
             .unwrap();
@@ -100,11 +93,10 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
                 .collect()
         });
         if let Some(unmasked_data) = unmasked_data.as_ref() {
-            for (i, data) in unmasked_data.iter().enumerate() {
+            for data in unmasked_data.iter() {
                 let mut bytes = vec![];
-                for (j, block) in data.iter().enumerate() {
+                for block in data.iter() {
                     bytes.extend(block.as_ref().into_iter().map(|x| x.clone()));
-                    //println!("unmasked_data[{}][{}][{}] = {:?}", i / 2, i % 2, j, block)
                 }
                 let de: Result<
                     (
