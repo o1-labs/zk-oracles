@@ -48,8 +48,6 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
         // A random scalar to blind the multiples of all commitments
         let scale_blinder = ScalarField::rand(&mut rng);
 
-        let mut total_blinder = ScalarField::zero();
-
         let blinded_commitments = {
             let computed_lagrange_commitments = srs.lagrange_bases.get(&domain.size()).unwrap();
             let mut res = Vec::with_capacity(circ.noutput_wires);
@@ -61,6 +59,8 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
             }
             res
         };
+
+        let mut total_blinder = ScalarField::zero();
 
         let data_to_mask = Some({
             let mut data_to_mask = Vec::with_capacity(2 * circ.noutput_wires);
