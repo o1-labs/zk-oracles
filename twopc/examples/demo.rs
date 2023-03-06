@@ -1,6 +1,7 @@
 use std::net::TcpStream;
 
-use ark_ec::AffineCurve;
+use ark_ec::{AffineCurve, ProjectiveCurve};
+use ark_ff::{UniformRand, Zero};
 use ark_poly::{EvaluationDomain, Radix2EvaluationDomain as D};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use mina_curves::pasta::curves::vesta::{Vesta, VestaParameters};
@@ -44,12 +45,17 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
 
         let mut rng = AesRng::new();
 
+        // A random scalar to blind the multiples of all commitments
+        let scale_blinder = ScalarField::rand(&mut rng);
+
+        let mut total_blinder = ScalarField::zero();
+
         let blinded_commitments = {
             let computed_lagrange_commitments = srs.lagrange_bases.get(&domain.size()).unwrap();
             let mut res = Vec::with_capacity(circ.noutput_wires);
             for i in 0..circ.noutput_wires {
                 let lagrange_point = computed_lagrange_commitments[i / 8].clone();
-                let scalar = ((1 << (i % 8)) as u64).into();
+                let scalar = scale_blinder * &((1 << (i % 8)) as u64).into();
                 let commitment = srs.mask(lagrange_point.scale(scalar), &mut rng);
                 res.push(commitment);
             }
@@ -60,11 +66,14 @@ fn demo(netio: NetChannel<TcpStream, TcpStream>) {
             let mut data_to_mask = Vec::with_capacity(2 * circ.noutput_wires);
             for commitment in blinded_commitments.iter() {
                 // Assume no chunking for now
-                let curve_point = commitment.commitment.unshifted[0];
-                println!("res: {}", curve_point);
-                let data = affine_to_bytes(curve_point);
-                data_to_mask.push(data.clone());
-                data_to_mask.push(data);
+                let blinder = commitment.blinders.unshifted[0];
+                total_blinder += blinder;
+                let zero_curve_point = srs.h.mul(blinder).into_affine();
+                println!("res: {}", zero_curve_point);
+                let one_curve_point = commitment.commitment.unshifted[0];
+                println!("res: {}", one_curve_point);
+                data_to_mask.push(affine_to_bytes(zero_curve_point));
+                data_to_mask.push(affine_to_bytes(one_curve_point));
             }
             data_to_mask
         });
