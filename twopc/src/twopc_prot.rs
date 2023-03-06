@@ -63,6 +63,10 @@ impl<C: AbstractChannel> TwopcProtocol<C> {
         }
     }
 
+    pub fn channel(&mut self) -> &mut C {
+        &mut self.channel
+    }
+
     pub fn compute<R: Rng + CryptoRng>(
         &mut self,
         rng: &mut R,
