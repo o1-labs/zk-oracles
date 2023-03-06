@@ -26,7 +26,9 @@ fn bench_garble_adder64(c: &mut Criterion) {
         let mut gen = HalfGateGenerator::new(delta);
 
         b.iter(|| {
-            let gc = gen.garble(&mut rng, &circ, &input_zero_labels).unwrap();
+            let gc = gen
+                .garble(&mut rng, &circ, &input_zero_labels, &None)
+                .unwrap();
             criterion::black_box(gc);
         });
     });
@@ -50,7 +52,9 @@ fn bench_garble_aes_128_reverse(c: &mut Criterion) {
         let mut gen = HalfGateGenerator::new(delta);
 
         b.iter(|| {
-            let gc = gen.garble(&mut rng, &circ, &input_zero_labels).unwrap();
+            let gc = gen
+                .garble(&mut rng, &circ, &input_zero_labels, &None)
+                .unwrap();
             criterion::black_box(gc);
         });
     });

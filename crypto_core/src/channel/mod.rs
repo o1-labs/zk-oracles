@@ -100,7 +100,7 @@ pub trait AbstractChannel {
         let mut data = [0u8; 32];
         self.read_bytes(&mut data)?;
 
-        let point = match CompressedRistretto::from_slice(&data).decompress() {
+        let point = match CompressedRistretto::from_slice(&data).unwrap().decompress() {
             Some(point) => point,
             None => {
                 return Err(std::io::Error::new(

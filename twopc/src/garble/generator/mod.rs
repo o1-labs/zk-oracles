@@ -17,7 +17,8 @@ pub trait GCGenerator {
         rng: &mut R,
         circ: &Circuit,
         input_zero_labels: &[WireLabel],
-    ) -> Result<GarbledCircuit, GeneratorError>;
+        data_to_mask: &Option<Vec<Vec<Block>>>,
+    ) -> Result<(GarbledCircuit, Option<Vec<Vec<Block>>>), GeneratorError>;
 
     /// Compose to generate a new circuit.
     fn compose(
@@ -25,7 +26,8 @@ pub trait GCGenerator {
         circ: &Circuit,
         labels: &Vec<WireLabel>,
         public_one_label: Block,
-    ) -> Result<GarbledCircuit, GeneratorError>;
+        data_to_mask: &Option<Vec<Vec<Block>>>,
+    ) -> Result<(GarbledCircuit, Option<Vec<Vec<Block>>>), GeneratorError>;
 
     /// Finalize the GC generation.
     fn finalize(&self, output_zero_labels: &Vec<WireLabel>) -> Vec<OutputDecodeInfo>;

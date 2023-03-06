@@ -37,6 +37,21 @@ pub fn send_wirelabels<C: AbstractChannel>(channel: &mut C, wls: &Vec<WireLabel>
     Ok(())
 }
 
+pub fn send_masked_data<C: AbstractChannel>(
+    channel: &mut C,
+    masked_data: &Option<Vec<Vec<Block>>>,
+) -> Result<()> {
+    // TODO: Use a reasonable encoding protocol
+    if let Some(masked_data) = masked_data {
+        for blocks in masked_data.iter() {
+            for block in blocks.iter() {
+                channel.write_block(block)?
+            }
+        }
+    }
+    Ok(())
+}
+
 pub fn send_decode_info<C: AbstractChannel>(
     channel: &mut C,
     decode_info: &Vec<OutputDecodeInfo>,
@@ -97,6 +112,21 @@ pub fn receive_wirelabels<C: AbstractChannel>(
     }
 
     *wls = res;
+    Ok(())
+}
+
+pub fn receive_masked_data<C: AbstractChannel>(
+    channel: &mut C,
+    masked_data: &mut Option<Vec<Vec<Block>>>,
+) -> Result<()> {
+    // TODO: Use a reasonable encoding protocol
+    if let Some(masked_data) = masked_data {
+        for blocks in masked_data.iter_mut() {
+            for block in blocks.iter_mut() {
+                *block = channel.read_block()?
+            }
+        }
+    }
     Ok(())
 }
 

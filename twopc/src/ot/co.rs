@@ -27,7 +27,7 @@ impl OtSender for COSender {
         mut rng: &mut R,
     ) -> Result<(), OTSenderError> {
         let y = Scalar::random(&mut rng);
-        let s = &y * &constants::RISTRETTO_BASEPOINT_TABLE;
+        let s = &y * constants::RISTRETTO_BASEPOINT_TABLE;
         channel.write_point(&s)?;
         channel.flush()?;
 
@@ -82,7 +82,7 @@ impl OtReceiver for COReceiver {
             .map(|input| {
                 let x = Scalar::random(&mut rng);
                 let cs = if *input { s } else { iden };
-                let r = cs + &x * &RISTRETTO_BASEPOINT_TABLE;
+                let r = cs + &x * RISTRETTO_BASEPOINT_TABLE;
                 channel.write_point(&r).unwrap();
                 hash_to_block(hasher.clone(), &r, &(&x * &s_table))
             })
